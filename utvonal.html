@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Útvonaltervező és utazási ajánló | ORBITA</title>
+<meta name="description" content="Tervezz útvonalat autóval, kerékpárral, gyalog vagy légi vonalon. Az ORBITA kiszámolja mind a négy változatot, megmondja, melyiket érdemes választani, és megmutatja az úti cél képét.">
+<link rel="canonical" href="https://[KITOLTENDO-DOMAIN]/utvonal.html">
+<meta property="og:title" content="Útvonaltervező és utazási ajánló | ORBITA">
+<meta property="og:description" content="Autó, kerékpár, gyalog vagy légi vonal – azonnali ajánlással.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=14">
+<style>
+  .recbox{border:1px solid var(--line2);border-radius:16px;padding:18px 20px;margin-bottom:16px;
+          background:rgba(217,185,120,.07)}
+  .recbox h3{margin-bottom:8px}
+  .recline{margin:0;font-size:.93rem;color:var(--mute);line-height:1.6}
+  .tbl tr.rec td{background:rgba(217,185,120,.13)}
+  #cmpwrap{margin-top:44px}
+  .owmap{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);
+         height:clamp(280px,44svh,500px);min-height:280px;background:#04070e}
+  .owmap canvas{display:block;width:100%;height:100%;touch-action:none;cursor:grab}
+  .owhint{margin:10px 0 0;font-size:.79rem;color:var(--mute)}
+  .dest{margin-top:16px;border-top:1px solid var(--line);padding-top:16px}
+  .dest h3{margin-bottom:10px}
+  .destimg{width:100%;height:180px;object-fit:cover;border-radius:14px;border:1px solid var(--line);
+           background:var(--bg2);margin-bottom:12px}
+</style>
+<script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"ORBITA Útvonaltervező","applicationCategory":"TravelApplication","operatingSystem":"Web","inLanguage":"hu","offers":{"@type":"Offer","price":"0","priceCurrency":"HUF"}}
+</script>
+<script src="proxy.js?v=14"></script>
+</head>
+<body>
+<div class="progress"><i></i></div>
+
+<header class="nav">
+  <a class="brand" href="index.html"><span class="brand-mark"></span>ORBITA</a>
+  <nav class="nav-links" aria-label="Főmenü">
+    <a href="fold.html">Föld</a><a href="varosok.html">Városok</a><a href="muholdak.html">Műholdak</a>
+    <a href="repulok.html">Repülők</a><a class="on" href="utvonal.html">Útvonal</a><a href="galeria.html">Galéria</a>
+  </nav>
+  <div class="nav-act">
+    <button class="icon-btn" data-theme-toggle aria-label="Világos vagy sötét téma" type="button"></button>
+    <button class="burger" aria-label="Menü megnyitása" aria-expanded="false" type="button"><span></span><span></span><span></span></button>
+  </div>
+</header>
+<div class="drawer" id="drawer">
+  <a href="index.html">Főoldal</a><a href="fold.html">Föld</a><a href="varosok.html">Városok</a>
+  <a href="muholdak.html">Műholdak</a><a href="repulok.html">Repülők</a><a href="galeria.html">Galéria</a>
+  <a href="#" data-open-consent>Süti-beállítások</a>
+</div>
+
+<section style="padding-top:150px">
+  <div class="wrap">
+    <p class="kick rv">Ahonnan – ahová</p>
+    <h1 class="rv" style="font-size:clamp(2rem,4.4vw,3.5rem)">Melyik útvonal a legjobb? Megmondjuk.</h1>
+    <p class="lead rv">Írd be a kiindulást és az érkezést. Kiszámoljuk az autós, kerékpáros, gyalogos és légi változatot, ajánlunk egyet, és megmutatjuk az úti cél képét.</p>
+
+    <div class="grid g2 mt2">
+      <div class="card rv rv-l">
+        <h3>Útvonal</h3>
+        <div class="field">
+          <label for="from">Honnan?</label>
+          <input id="from" name="orbita_from" type="text" autocomplete="one-time-code"
+                 placeholder="pl. Budapest, Deák tér" role="combobox" aria-expanded="false" aria-controls="acF" aria-autocomplete="list">
+          <div class="ac" id="acF"></div>
+          <div class="err">Válassz egy találatot a listából.</div>
+        </div>
+        <div class="field">
+          <label for="to">Hová?</label>
+          <input id="to" name="orbita_to" type="text" autocomplete="one-time-code"
+                 placeholder="pl. Szeged, Dóm tér" role="combobox" aria-expanded="false" aria-controls="acT" aria-autocomplete="list">
+          <div class="ac" id="acT"></div>
+          <div class="err">Válassz egy találatot a listából.</div>
+        </div>
+
+        <div class="field">
+          <label>Először ezt mutassa a térkép</label>
+          <div class="pkglist" id="modes" style="margin-bottom:0">
+            <button class="chip on" data-m="car" type="button">Autó</button>
+            <button class="chip" data-m="bike" type="button">Kerékpár</button>
+            <button class="chip" data-m="foot" type="button">Gyalog</button>
+            <button class="chip" data-m="air" type="button">Légi vonal</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px">
+          <button class="btn btn-p" id="go" type="button">Útvonal kiszámítása</button>
+          <button class="btn" id="swap" type="button">Honnan / hová csere</button>
+          <button class="btn btn-s" id="fit" type="button">Teljes világ</button>
+        </div>
+      </div>
+
+      <div class="card rv rv-r">
+        <div class="recbox">
+          <p class="kick" style="margin-bottom:6px">Ajánlás</p>
+          <h3 id="rec-title">Még nincs számítás</h3>
+          <p class="recline" id="rec-why">Add meg a kiindulást és az érkezést, majd nyomd meg az „Útvonal kiszámítása” gombot.</p>
+        </div>
+
+        <p id="sum" class="muted small" style="margin:0 0 12px">–</p>
+
+        <div class="owmap" id="map"></div>
+        <p class="owhint" id="mapinfo">Húzd az egeret a mozgatáshoz · görgővel nagyítás · dupla kattintás: az útvonalra igazít</p>
+
+        <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px">
+          <a class="btn btn-s" id="gdir" href="#" target="_blank" rel="noopener">Útvonal a Google Maps-en</a>
+          <a class="btn btn-s" id="gplace" href="#" target="_blank" rel="noopener">Úti cél a Google Maps-en</a>
+        </div>
+
+        <div class="dest" id="dest" hidden>
+          <h3 id="destname">Az úti cél</h3>
+          <img class="destimg" id="destimg" alt="" hidden loading="lazy">
+          <p class="small muted" id="desttext"></p>
+        </div>
+      </div>
+    </div>
+
+    <div id="cmpwrap" class="rv">
+      <h3 style="margin-bottom:12px">Négy változat egymás mellett</h3>
+      <div class="tblwrap" style="max-height:none">
+        <table class="tbl" id="cmp" hidden>
+          <thead><tr><th>Mód</th><th>Távolság</th><th>Menetidő</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <p class="muted small" id="cmpempty" style="padding:16px;margin:0">A táblázat a számítás után töltődik ki.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <p class="kick rv">Ökölszabály</p>
+    <h2 class="rv">Mit érdemes tudni</h2>
+    <div class="grid g4 mt2" data-stagger>
+      <div class="card rv"><h3>0–2 km</h3><p class="muted small">Gyalog. Rövidebb, mint a parkolást megkeresni.</p></div>
+      <div class="card rv"><h3>2–15 km</h3><p class="muted small">Kerékpár. Városban gyakran gyorsabb, mint az autó.</p></div>
+      <div class="card rv"><h3>15–650 km</h3><p class="muted small">Autó. 2 óránként 15 perc pihenő, 650 km felett éjszakázás.</p></div>
+      <div class="card rv"><h3>650 km felett</h3><p class="muted small">Repülés. Számold hozzá a reptéri ki- és bejutást is.</p></div>
+    </div>
+    <p class="small muted mt2">A menetidők forgalomtól, időjárástól és a valós útvonaltól függően eltérhetnek. A térkép egyszerű vektoros világtérkép, nem utcaszintű.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fbot" style="margin-top:0">
+      <span>© <span data-year>2026</span> ORBITA · <a href="index.html">Főoldal</a></span>
+      <span>Útvonal: OSRM · helykeresés és fotók: Nominatim, Wikipédia, Wikimedia Commons · térkép: saját vektoros rajz</span>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js?v=14"></script>
+<script src="owmap.js?v=14"></script>
+<script src="owmap-alt.js?v=14"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (s) { return document.querySelector(s); };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m];
+    });
+  }
+  function fmt(h) {
+    var mm = Math.round(h * 60);
+    if (mm < 1) return '1 percnél kevesebb';
+    if (mm < 60) return mm + ' perc';
+    var hh = Math.floor(mm / 60), r = mm % 60;
+    return hh + ' óra' + (r ? ' ' + r + ' perc' : '');
+  }
+  function km(d) { return d.toFixed(d < 10 ? 1 : 0).replace('.', ',') + ' km'; }
+
+  var M = ORBITA.Map($('#map'), {
+    label: 'Útvonal térkép',
+    empty: 'Add meg az útvonalat, és itt jelenik meg.'
+  });
+  window.addEventListener('load', function () { setTimeout(function () { M.refresh(); }, 150); });
+
+  /* ---------- úti cél fotó ---------- */
+  var photoCache = {}, pseq = 0;
+  function norm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+  function wikiGeo(p, lang) {
+    var u = 'https://' + lang + '.wikipedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=geosearch&ggscoord=' + p.lat + '%7C' + p.lon + '&ggsradius=12000&ggslimit=8' +
+      '&prop=pageimages|extracts&piprop=thumbnail&pithumbsize=1100&exintro=1&explaintext=1&exsentences=2';
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+      if (!j || !j.query || !j.query.pages) return null;
+      var arr = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; });
+      var withImg = arr.filter(function (x) { return x.thumbnail && x.thumbnail.source; });
+      if (!withImg.length) return null;
+      return { img: withImg[0].thumbnail.source, text: withImg[0].extract || '', title: withImg[0].title, lang: lang };
+    });
+  }
+  function wikiSummary(p, lang) {
+    var u = 'https://' + lang + '.wikipedia.org/api/rest_v1/page/summary/' +
+      encodeURIComponent(String(p.name).replace(/ /g, '_')) + '?redirect=true';
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+      if (!j || !j.thumbnail || !j.thumbnail.source) return null;
+      return { img: j.thumbnail.source.replace(/\/\d+px-/, '/1000px-'), text: j.extract || '', title: j.title, lang: lang };
+    });
+  }
+  function commonsGeo(p) {
+    var u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=geosearch&ggscoord=' + p.lat + '%7C' + p.lon +
+      '&ggsradius=12000&ggslimit=6&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=1100';
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }).then(function (j) {
+      if (!j || !j.query || !j.query.pages) return null;
+      var arr = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })
+        .filter(function (x) { return x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl; });
+      if (!arr.length) return null;
+      return { img: arr[0].imageinfo[0].thumburl, text: '', title: '', lang: '' };
+    });
+  }
+  function loadDest(p) {
+    var key = norm(p.name) + '|' + p.lat.toFixed(2);
+    var id = ++pseq;
+    $('#dest').hidden = false;
+    $('#destname').textContent = p.name;
+    $('#destimg').hidden = true;
+    $('#destimg').removeAttribute('src');
+    $('#desttext').textContent = 'Fotó betöltése…';
+    if (photoCache[key] !== undefined) { paintDest(photoCache[key], id, p); return; }
+    wikiGeo(p, 'hu')
+      .then(function (r) { return r || wikiGeo(p, 'en'); })
+      .then(function (r) { return r || wikiSummary(p, 'hu'); })
+      .then(function (r) { return r || wikiSummary(p, 'en'); })
+      .then(function (r) { return r || commonsGeo(p); })
+      .then(function (r) { photoCache[key] = r || null; paintDest(photoCache[key], id, p); })
+      .catch(function () { photoCache[key] = null; paintDest(null, id, p); });
+  }
+  function paintDest(r, id, p) {
+    if (id !== pseq) return;
+    if (!r || !r.img) {
+      $('#desttext').textContent = 'Ehhez a helyhez nem találtam szabad fotót. A Google Maps-en megnézheted.';
+      return;
+    }
+    var img = $('#destimg');
+    img.onerror = function () { img.hidden = true; };
+    img.src = r.img;
+    img.alt = p.name + ' látképe';
+    img.hidden = false;
+    $('#desttext').textContent = (r.text || '') + (r.text ? ' ' : '') + 'Fotó: Wikipédia / Wikimedia Commons.';
+  }
+
+  /* ---------- javaslatlista ---------- */
+  var openList = null;
+  function autocomplete(input, box) {
+    var timer = null, items = [], sel = -1, ctrl = null, lastQ = '';
+    function close() {
+      box.classList.remove('open');
+      input.setAttribute('aria-expanded', 'false');
+      if (openList === api) openList = null;
+    }
+    function open() {
+      if (openList && openList !== api) openList.close();
+      box.classList.add('open');
+      input.setAttribute('aria-expanded', 'true');
+      openList = api;
+    }
+    function draw(list) {
+      items = list; sel = -1;
+      if (!list.length) { close(); return; }
+      box.innerHTML = list.map(function (x, i) {
+        return '<button type="button" data-i="' + i + '"><b>' + esc(x.name) + '</b>' +
+          (x.detail ? '<small>' + esc(x.detail) + '</small>' : '') + '</button>';
+      }).join('');
+      open();
+    }
+    function mark() {
+      Array.prototype.forEach.call(box.children, function (b, i) { b.classList.toggle('sel', i === sel); });
+    }
+    function choose(x) {
+      input.value = x.label;
+      input.dataset.lat = x.lat;
+      input.dataset.lon = x.lon;
+      input.dataset.label = x.label;
+      input.closest('.field').classList.remove('bad');
+      close();
+      input.blur();
+    }
+    var api = { close: close, input: input };
+    input.addEventListener('input', function () {
+      delete input.dataset.lat; delete input.dataset.lon; delete input.dataset.label;
+      var vv = input.value.trim();
+      lastQ = vv;
+      if (ctrl) ctrl.abort();
+      if (vv.length < 3) { close(); return; }
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+        fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=hu&q=' +
+          encodeURIComponent(vv), { signal: ctrl ? ctrl.signal : undefined, headers: { Accept: 'application/json' } })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .catch(function () { return []; })
+          .then(function (rows) {
+            if (input.value.trim() !== lastQ || document.activeElement !== input) return;
+            draw(rows.map(function (r) {
+              var a = r.address || {};
+              var nm = r.name || String(r.display_name || '').split(',')[0];
+              var tail = String(r.display_name || '').split(',').slice(1, 3).join(', ').trim() || a.country || '';
+              return { name: nm, detail: tail, lat: +r.lat, lon: +r.lon,
+                       label: String(r.display_name || '').split(',').slice(0, 3).join(', ') };
+            }).filter(function (x) { return x.lat && x.lon; }));
+          });
+      }, 380);
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); mark(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); mark(); }
+      else if (e.key === 'Enter') { e.preventDefault(); var pick = items[sel] || items[0]; if (pick) { choose(pick); run(); } }
+      else if (e.key === 'Escape') close();
+    });
+    input.addEventListener('blur', function () { setTimeout(close, 160); });
+    box.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    box.addEventListener('click', function (e) {
+      var b = e.target.closest('button[data-i]');
+      if (b) choose(items[+b.dataset.i]);
+    });
+    return api;
+  }
+  autocomplete($('#from'), $('#acF'));
+  autocomplete($('#to'), $('#acT'));
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.field') && openList) openList.close();
+  });
+
+  /* ---------- módok ---------- */
+  var MODES = [
+    { k: 'car',  label: 'Autó',       prof: 'car',  speed: 70,  wind: 1.27, gm: 'driving' },
+    { k: 'bike', label: 'Kerékpár',   prof: 'bike', speed: 16,  wind: 1.20, gm: 'bicycling' },
+    { k: 'foot', label: 'Gyalog',     prof: 'foot', speed: 4.6, wind: 1.18, gm: 'walking' },
+    { k: 'air',  label: 'Légi vonal', prof: null,   speed: 850, wind: 1.00, gm: 'driving' }
+  ];
+  function modeDef(k) { for (var i = 0; i < MODES.length; i++) if (MODES[i].k === k) return MODES[i]; return MODES[0]; }
+  var mode = 'car';
+
+  function syncChips() {
+    Array.prototype.forEach.call(document.querySelectorAll('#modes .chip'), function (x) {
+      x.classList.toggle('on', x.dataset.m === mode);
+    });
+  }
+  $('#modes').addEventListener('click', function (e) {
+    var b = e.target.closest('.chip');
+    if (!b) return;
+    mode = b.dataset.m;
+    syncChips();
+    if (CURRENT) { render(); updateGoogle(); }
+  });
+
+  function updateGoogle() {
+    if (!CURRENT) return;
+    var A = CURRENT.A, B = CURRENT.B;
+    var gm = modeDef(mode).gm;
+    $('#gdir').href = 'https://www.google.com/maps/dir/?api=1&origin=' + A[0].toFixed(5) + ',' + A[1].toFixed(5) +
+      '&destination=' + B[0].toFixed(5) + ',' + B[1].toFixed(5) + '&travelmode=' + gm;
+    $('#gplace').href = 'https://www.google.com/maps/search/?api=1&query=' + B[0].toFixed(5) + ',' + B[1].toFixed(5);
+  }
+
+  /* ---------- geometria ---------- */
+  function haversine(a, b) {
+    var R = 6371, dLa = (b[0] - a[0]) * Math.PI / 180, dLo = (b[1] - a[1]) * Math.PI / 180;
+    var la1 = a[0] * Math.PI / 180, la2 = b[0] * Math.PI / 180;
+    var h = Math.sin(dLa / 2) * Math.sin(dLa / 2) +
+      Math.cos(la1) * Math.cos(la2) * Math.sin(dLo / 2) * Math.sin(dLo / 2);
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+  }
+  function gcLine(a, b, n) {
+    var out = [];
+    var la1 = a[0] * Math.PI / 180, lo1 = a[1] * Math.PI / 180;
+    var la2 = b[0] * Math.PI / 180, lo2 = b[1] * Math.PI / 180;
+    var d = 2 * Math.asin(Math.min(1, Math.sqrt(
+      Math.sin((la2 - la1) / 2) * Math.sin((la2 - la1) / 2) +
+      Math.cos(la1) * Math.cos(la2) * Math.sin((lo2 - lo1) / 2) * Math.sin((lo2 - lo1) / 2))));
+    if (d < 1e-9) return [a, b];
+    for (var i = 0; i <= n; i++) {
+      var f = i / n;
+      var A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+      var x = A * Math.cos(la1) * Math.cos(lo1) + B * Math.cos(la2) * Math.cos(lo2);
+      var y = A * Math.cos(la1) * Math.sin(lo1) + B * Math.cos(la2) * Math.sin(lo2);
+      var z = A * Math.sin(la1) + B * Math.sin(la2);
+      out.push([Math.atan2(z, Math.sqrt(x * x + y * y)) * 180 / Math.PI, Math.atan2(y, x) * 180 / Math.PI]);
+    }
+    return out;
+  }
+
+  /* ---------- OSRM ---------- */
+  function osrm(prof, A, B) {
+    var url = 'https://routing.openstreetmap.de/routed-' + prof + '/route/v1/driving/' +
+      A[1] + ',' + A[0] + ';' + B[1] + ',' + B[0] + '?overview=full&geometries=geojson';
+    return fetch(url)
+      .then(function (r) { if (!r.ok) throw new Error('http'); return r.json(); })
+      .then(function (j) {
+        if (!j.routes || !j.routes[0]) throw new Error('noroute');
+        var r0 = j.routes[0];
+        return { d: r0.distance / 1000, h: r0.duration / 3600, est: false,
+                 pts: r0.geometry.coordinates.map(function (c) { return [c[1], c[0]]; }) };
+      })
+      .catch(function () { return null; });
+  }
+
+  /* ---------- ajánlás ---------- */
+  function recommend(d) {
+    var pick, why, tip = '';
+    if (d < 1.6) { pick = 'foot'; why = 'Séta: ilyen rövid távon ez a leggyorsabb, nincs parkolás és kerülő.'; }
+    else if (d < 12) { pick = 'bike'; why = 'Kerékpár: városon belül többnyire gyorsabb, mint az autó a forgalom és a parkolás miatt.'; }
+    else if (d < 45) { pick = 'car'; why = 'Autó: ezen a távon kényelmes, kerékpárral már fárasztó lenne.'; }
+    else if (d < 650) { pick = 'car'; why = 'Autó: egy nap alatt kényelmesen teljesíthető.'; tip = 'Körülbelül 2 óránként iktass be 15 perc pihenőt.'; }
+    else { pick = 'air'; why = 'Repülés: ekkora távon töredék idő, autóval több napos út lenne.'; tip = 'Számold hozzá a repterekre ki- és bejutást is, összesen 2-3 órát.'; }
+    return { pick: pick, why: why + (tip ? ' ' + tip : '') };
+  }
+
+  /* ---------- számítás ---------- */
+  var CURRENT = null;
+
+  function run() {
+    var a = $('#from'), b = $('#to');
+    var oka = a.dataset.lat && a.dataset.lon;
+    var okb = b.dataset.lat && b.dataset.lon;
+    a.closest('.field').classList.toggle('bad', !oka);
+    b.closest('.field').classList.toggle('bad', !okb);
+    $('#cmp').hidden = true;
+    $('#cmpempty').hidden = false;
+    if (!oka || !okb) {
+      ORBITA.toast('Válassz ki egy találatot a javaslatokból mindkét mezőnél.', 'bad');
+      return;
+    }
+    var A = [+a.dataset.lat, +a.dataset.lon], B = [+b.dataset.lat, +b.dataset.lon];
+    var straight = haversine(A, B);
+    $('#sum').innerHTML = '<span class="load"></span> Számítás…';
+
+    var jobs = MODES.filter(function (m) { return m.prof && (m.k === 'car' || straight < 420); });
+
+    Promise.all(jobs.map(function (m) { return osrm(m.prof, A, B); })).then(function (list) {
+      var res = {};
+      MODES.forEach(function (m) {
+        if (m.k === 'air') {
+          res.air = { d: straight, h: straight / 850 + 0.5, est: false,
+                      pts: gcLine(A, B, Math.max(24, Math.min(180, Math.round(straight / 8)))) };
+        } else {
+          var dd = straight * m.wind;
+          res[m.k] = { d: dd, h: dd / m.speed, est: true, pts: null };
+        }
+      });
+      var real = 0;
+      jobs.forEach(function (m, i) { if (list[i]) { res[m.k] = list[i]; real++; } });
+      CURRENT = {
+        A: A, B: B, res: res, straight: straight,
+        pa: { lat: A[0], lon: A[1], name: String(a.dataset.label || a.value).split(',')[0] },
+        pb: { lat: B[0], lon: B[1], name: String(b.dataset.label || b.value).split(',')[0] }
+      };
+      render();
+      updateGoogle();
+      loadDest({ name: CURRENT.pb.name, lat: B[0], lon: B[1] });
+      $('#mapinfo').textContent = real
+        ? 'Az útvonal az OpenStreetMap úthálózatán fut. Húzd az egeret a mozgatáshoz, görgővel nagyíthatsz.'
+        : 'Az útvonal-szolgáltatás most nem elérhető, ezért becsült értékeket mutatok.';
+    });
+  }
+
+  function drawMap(k) {
+    if (!CURRENT) return;
+    var r = CURRENT.res[k];
+    if (!r) return;
+    M.setRoute(r.pts || gcLine(CURRENT.A, CURRENT.B, 80), CURRENT.pa, CURRENT.pb);
+  }
+
+  function render() {
+    if (!CURRENT) return;
+    var res = CURRENT.res, straight = CURRENT.straight;
+    var rec = recommend(straight);
+    var r = res[mode] || res.car;
+
+    $('#rec-title').textContent = 'Ajánlott: ' + modeDef(rec.pick).label;
+    $('#rec-why').textContent = rec.why;
+
+    $('#sum').innerHTML = 'Kiválasztva: <b>' + modeDef(mode).label + '</b> · ' + km(r.d) + ' · ' + fmt(r.h) +
+      (r.est ? ' <span class="muted">(becsült)</span>' : '');
+
+    $('#cmp tbody').innerHTML = MODES.map(function (m) {
+      var x = res[m.k];
+      return '<tr' + (m.k === rec.pick ? ' class="rec"' : '') + '>' +
+        '<td>' + m.label + (m.k === rec.pick ? ' <span class="pill">ajánlott</span>' : '') + '</td>' +
+        '<td>' + km(x.d) + '</td>' +
+        '<td>' + fmt(x.h) + (x.est ? ' <span class="muted small">becsült</span>' : '') + '</td>' +
+        '<td><button class="chip" data-show="' + m.k + '" type="button">Térképre</button></td>' +
+        '</tr>';
+    }).join('');
+    $('#cmp').hidden = false;
+    $('#cmpempty').hidden = true;
+
+    drawMap(mode);
+  }
+
+  $('#cmp tbody').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-show]');
+    if (!b) return;
+    mode = b.dataset.show;
+    syncChips();
+    render();
+    updateGoogle();
+  });
+
+  $('#go').addEventListener('click', run);
+  $('#fit').addEventListener('click', function () { M.world(); });
+  $('#swap').addEventListener('click', function () {
+    var a = $('#from'), b = $('#to');
+    var tv = a.value, tl = a.dataset.label, tla = a.dataset.lat, tlo = a.dataset.lon;
+    a.value = b.value; a.dataset.label = b.dataset.label; a.dataset.lat = b.dataset.lat; a.dataset.lon = b.dataset.lon;
+    b.value = tv; b.dataset.label = tl; b.dataset.lat = tla; b.dataset.lon = tlo;
+  });
+
+  (function () {
+    var params = new URLSearchParams(location.search);
+    function prefill(sel, val) {
+      if (!val) return;
+      var parts = String(val).split(',');
+      if (parts.length < 3) return;
+      var el = $(sel), nm = decodeURIComponent(parts.slice(2).join(','));
+      el.dataset.lat = parts[0];
+      el.dataset.lon = parts[1];
+      el.dataset.label = nm;
+      el.value = nm;
+    }
+    prefill('#from', params.get('from'));
+    prefill('#to', params.get('to'));
+  })();
+
+  syncChips();
+})();
+</script>
+</body>
+</html>

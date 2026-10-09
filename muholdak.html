@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Élő műholdak – űrállomások, GPS, időjárás | ORBITA</title>
+<meta name="description" content="Valós idejű műholdpozíciók a 3D Földön és listában: magasság, sebesség, szélesség és hosszúság. Az adatok nyílt TLE-állományokból származnak.">
+<link rel="canonical" href="https://[KITOLTENDO-DOMAIN]/muholdak.html">
+<meta property="og:title" content="Élő műholdkövetés | ORBITA">
+<meta property="og:description" content="Hol van most az ISS és több száz másik műhold?">
+<meta property="og:image" content="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=14">
+<script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"Dataset","name":"Élő műholdpozíciók","inLanguage":"hu","creator":{"@type":"Organization","name":"CelesTrak"}}
+</script>
+<script src="proxy.js?v=14"></script>
+</head>
+<body>
+<h1 class="sr">Élő műholdkövetés – űrállomások, GPS és időjárási műholdak</h1>
+<div class="progress"><i></i></div>
+<div class="gh">
+  <div class="stars" data-stars="170"></div>
+
+  <div class="stage" id="stage">
+    <div class="glabels" id="glabels"></div>
+  </div>
+
+  <div class="gh-top">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>ORBITA</a>
+    <nav class="nav-links" aria-label="Főmenü">
+      <a href="fold.html">Föld</a><a href="varosok.html">Városok</a><a class="on" href="muholdak.html">Műholdak</a>
+      <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonal</a><a href="galeria.html">Galéria</a>
+    </nav>
+    <div class="nav-act">
+      <button class="icon-btn" data-theme-toggle aria-label="Világos vagy sötét téma" type="button"></button>
+      <button class="burger" aria-label="Menü megnyitása" aria-expanded="false" type="button"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <div class="gpanels">
+    <div class="gpanel info">
+      <h3>Műholdkövetés</h3>
+      <p class="coords" id="stat"><span class="load"></span> Adatok betöltése…</p>
+      <div class="pkglist" id="groups" style="margin-top:12px">
+        <button class="chip on" data-g="stations" type="button">Űrállomások</button>
+        <button class="chip" data-g="visual" type="button">Legfényesebbek</button>
+        <button class="chip" data-g="gps-ops" type="button">GPS</button>
+        <button class="chip" data-g="weather" type="button">Időjárás</button>
+        <button class="chip" data-g="science" type="button">Tudomány</button>
+      </div>
+      <p class="small muted">A pályapontok a böngésződben számolódnak a nyílt TLE-adatokból. Frissítés 20 másodpercenként.</p>
+    </div>
+    <div class="gpanel info" id="satcard" hidden>
+      <h3 id="satname">Műhold</h3>
+      <p class="coords" id="satmeta"></p>
+      <img class="cphoto" id="satimg" alt="" hidden loading="lazy">
+      <p class="small muted" id="sattext" style="margin-top:10px"></p>
+      <a class="btn btn-s" id="satlink" href="#" target="_blank" rel="noopener">Wikipédia</a>
+    </div>
+    <div class="dock">
+      <a href="repulok.html">Repülők</a><a href="varosok.html">Városok</a><a href="utvonal.html">Útvonal</a>
+    </div>
+  </div>
+
+  <div class="ghint">Kattints egy műholdra a listában, és a gömb odafordul</div>
+</div>
+
+<section style="padding-top:44px">
+  <div class="wrap">
+    <p class="kick rv">Lista</p>
+    <h2 class="rv">Műholdak most</h2>
+    <div class="tblwrap mt2 rv">
+      <table class="tbl">
+        <thead><tr><th>Név</th><th>Magasság</th><th>Sebesség</th><th>Szélesség</th><th>Hosszúság</th><th></th></tr></thead>
+        <tbody id="rows"><tr><td colspan="6" class="muted">Betöltés…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="fbot" style="margin-top:0">
+      <span>© <span data-year>2026</span> ORBITA · <a href="index.html">Főoldal</a></span>
+      <span>Adat: CelesTrak TLE · pályaszámítás: satellite.js · fotók: Unsplash</span>
+    </div>
+  </div>
+</footer>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Főoldal</a><a href="fold.html">Föld</a><a href="varosok.html">Városok</a>
+  <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonaltervező</a><a href="galeria.html">Galéria</a>
+  <a href="#" data-open-consent>Süti-beállítások</a>
+</div>
+
+<script src="app.js?v=14"></script>
+<script src="globe.js?v=14"></script>
+<script>
+/* satellite.js betöltése két tartalékkal */
+(function () {
+  var srcs = [
+    'https://cdn.jsdelivr.net/npm/satellite.js@5.0.0/dist/satellite.min.js',
+    'https://cdn.jsdelivr.net/npm/satellite.js@4.1.4/dist/satellite.min.js',
+    'https://unpkg.com/satellite.js@4.1.4/dist/satellite.min.js'
+  ];
+  var i = 0;
+  function load() {
+    if (window.satellite) { window.dispatchEvent(new Event('satreq')); return; }
+    if (i >= srcs.length) { window.dispatchEvent(new Event('satreq')); return; }
+    var s = document.createElement('script');
+    s.src = srcs[i++];
+    s.onload = function () { window.dispatchEvent(new Event('satreq')); };
+    s.onerror = load;
+    document.head.appendChild(s);
+  }
+  load();
+})();
+</script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var labels = document.getElementById('glabels');
+  if (!stage || !window.ORBITA || !ORBITA.Globe) return;
+
+  var c = document.createElement('canvas');
+  c.className = 'orbit-canvas';
+  c.setAttribute('role', 'img');
+  c.setAttribute('aria-label', '3D Föld műholdakkal');
+  stage.insertBefore(c, labels);
+
+  var g = ORBITA.Globe(c, {
+    host: stage, labelHost: labels, lat: 20, lon: 0, hoverFocus: false,
+    marks: [
+      { lat: 46.20, lon: 19.50, label: 'Budapest', sub: 'Magyarország', kind: 'city' },
+      { lat: 28.49, lon: -80.58, label: 'Cape Canaveral', sub: 'USA', kind: 'city' },
+      { lat: 45.96, lon: 63.31, label: 'Bajkonur', sub: 'Kazahsztán', kind: 'city' },
+      { lat: 5.24, lon: -52.77, label: 'Kourou', sub: 'Francia Guyana', kind: 'city' },
+      { lat: 34.63, lon: 120.58, label: 'Jiuquan', sub: 'Kína', kind: 'city' }
+    ]
+  });
+
+  var rows = document.getElementById('rows'),
+      stat = document.getElementById('stat'),
+      groups = document.getElementById('groups');
+
+  var sats = [], satObjs = [], satset = [], group = 'stations', timer = null, pool = [], manual = null;
+  var GROUPNAMES = { stations: 'űrállomások', visual: 'legfényesebbek', 'gps-ops': 'GPS', weather: 'időjárás', science: 'tudományos' };
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>]/g, function (m) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m];
+    });
+  }
+  function setStat(html) { stat.innerHTML = html; }
+
+  /* ---------- TLE források ---------- */
+  function celestrak(gp) {
+    return fetch('https://celestrak.org/NORAD/elements/gp.php?GROUP=' + gp + '&FORMAT=tle')
+      .then(function (r) { if (!r.ok) throw 0; return r.text(); });
+  }
+  function satnogs() {
+    return fetch('https://db.satnogs.org/api/tle/?format=json').then(function (r) {
+      if (!r.ok) throw 0;
+      return r.json();
+    }).then(function (rows) {
+      return rows.filter(function (x) { return x.tle1 && x.tle2; }).slice(0, 240)
+        .map(function (x) { return { name: (x.tle0 || '').replace(/^0 /, '') || ('SAT ' + x.norad_cat_id), l1: x.tle1, l2: x.tle2 }; });
+    });
+  }
+  function localFile() {
+    return fetch('tle.txt').then(function (r) { if (!r.ok) throw 0; return r.text(); });
+  }
+  function parseTLE(txt) {
+    var lines = String(txt).split(/\r?\n/).map(function (l) { return l.replace(/\s+$/, ''); });
+    var out = [], i = 0;
+    while (i < lines.length) {
+      var a = lines[i] || '', b = lines[i + 1] || '', d = lines[i + 2] || '';
+      if (b.indexOf('1 ') === 0 && d.indexOf('2 ') === 0) {
+        out.push({ name: a.replace(/^0 /, '').trim() || 'Névtelen', l1: b, l2: d });
+        i += 3;
+      } else i++;
+    }
+    return out;
+  }
+
+  function grab(gp) {
+    return localFile().then(parseTLE).then(function (list) {
+      if (list.length > 5) return list;
+      throw 0;
+    }).catch(function () {
+      return celestrak(gp).then(parseTLE);
+    }).then(function (list) {
+      if (list.length) return list;
+      throw 0;
+    }).catch(function () {
+      return satnogs();
+    });
+  }
+
+  /* ---------- csoportváltás ---------- */
+  function loadGroup(gp) {
+    group = gp;
+    Array.prototype.forEach.call(groups.querySelectorAll('.chip'), function (b) {
+      b.classList.toggle('on', b.dataset.g === gp);
+    });
+    setStat('<span class="load"></span> ' + (GROUPNAMES[gp] || gp) + ' betöltése…');
+    clearInterval(timer);
+    if (g.removeIf) g.removeIf(function (m) { return m.kind === 'sat'; });
+    pool = [];
+
+    grab(gp).then(function (list) {
+      if (!list.length) throw 0;
+      setup(list);
+    }).catch(function () {
+      issFallback();
+    });
+  }
+
+  function setup(list) {
+    var sat = window.satellite;
+    if (!sat) { fallbackNoLib(); return; }
+    satObjs = [];
+    list.slice(0, 260).forEach(function (s) {
+      try {
+        var rec = sat.twoline2satrec(s.l1, s.l2);
+        if (rec) satObjs.push({ name: s.name, satrec: rec });
+      } catch (e) {}
+    });
+    if (!satObjs.length) { fallbackNoLib(); return; }
+
+    setStat('<b>' + satObjs.length + '</b> műhold · ' + (GROUPNAMES[group] || group) + ' · ' +
+      new Date().toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }));
+
+    var frag = document.createDocumentFragment();
+    satObjs.slice(0, 140).forEach(function (s, i) {
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td>' + esc(s.name) + '</td><td class="c-alt">–</td><td class="c-vel">–</td>' +
+        '<td class="c-lat">–</td><td class="c-lon">–</td>' +
+        '<td><button class="chip" data-i="' + i + '" type="button">Földre</button></td>';
+      frag.appendChild(tr);
+    });
+    rows.innerHTML = '';
+    rows.appendChild(frag);
+
+    update();
+    clearInterval(timer);
+    timer = setInterval(update, 20000);
+  }
+
+  rows.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-i]');
+    if (!b) return;
+    var s = satObjs[+b.dataset.i];
+    if (!s) return;
+    var p = pv(s);
+    if (!p) return;
+    var m = null;
+    for (var i = 0; i < pool.length; i++) if (pool[i].label === s.name) { m = pool[i]; break; }
+    if (!m) {
+      m = g.add({ lat: p.lat, lon: p.lon, label: s.name, sub: p.alt.toFixed(0) + ' km', kind: 'sat', _tmp: true });
+      pool.push(m);
+    } else { m.lat = p.lat; m.lon = p.lon; m.sub = p.alt.toFixed(0) + ' km'; }
+    g.redraw();
+    g.focus(m);
+  });
+
+  function pv(s) {
+    var sat = window.satellite;
+    if (!sat || !s || !s.satrec) return null;
+    try {
+      var now = new Date();
+      var p = sat.propagate(s.satrec, now);
+      if (!p || !p.position) return null;
+      var gd = sat.eciToGeodetic(p.position, sat.gstime(now));
+      var r = gd.latitude * 180 / Math.PI;
+      var lo = gd.longitude * 180 / Math.PI;
+      if (!isFinite(r) || !isFinite(lo)) return null;
+      return { lat: r, lon: lo, alt: gd.height, vel: Math.sqrt(p.velocity.x * p.velocity.x + p.velocity.y * p.velocity.y + p.velocity.z * p.velocity.z) };
+    } catch (e) { return null; }
+  }
+
+  function update() {
+    if (!satObjs.length) return;
+    var trs = rows.children;
+    for (var i = 0; i < satObjs.length; i++) {
+      var p = pv(satObjs[i]);
+      if (!p) continue;
+      if (trs[i]) {
+        trs[i].querySelector('.c-alt').textContent = p.alt.toFixed(0) + ' km';
+        trs[i].querySelector('.c-vel').textContent = p.vel.toFixed(2) + ' km/s';
+        trs[i].querySelector('.c-lat').textContent = p.lat.toFixed(2) + '°';
+        trs[i].querySelector('.c-lon').textContent = p.lon.toFixed(2) + '°';
+      }
+      if (i < 64) {
+        var m = pool[i];
+        if (!m) {
+          m = g.add({ lat: p.lat, lon: p.lon, label: satObjs[i].name, sub: p.alt.toFixed(0) + ' km', kind: 'sat', _tmp: true });
+          pool.push(m);
+        } else {
+          m.lat = p.lat; m.lon = p.lon; m.sub = p.alt.toFixed(0) + ' km';
+        }
+      }
+    }
+    g.redraw();
+  }
+
+  /* ---------- tartalékok ---------- */
+  function fallbackNoLib() {
+    setStat('A pályaszámító könyvtár nem töltődött be – ISS közvetlen forrásból.');
+    issFallback(true);
+  }
+  function issFallback(nolib) {
+    fetch('https://api.wheretheiss.at/v1/satellites/25544')
+      .then(function (r) { if (!r.ok) throw 0; return r.json(); })
+      .then(function (j) {
+        if (!j || j.latitude == null) throw 0;
+        clearInterval(timer);
+        rows.innerHTML = '<tr><td>ISS (ZARYA)</td><td>' + (+j.altitude).toFixed(0) + ' km</td><td>' +
+          (+j.velocity).toFixed(2) + ' km/s</td><td>' + (+j.latitude).toFixed(2) + '°</td><td>' +
+          (+j.longitude).toFixed(2) + '°</td><td><span class="pill">élő</span></td></tr>';
+        setStat('ISS: ' + (+j.latitude).toFixed(2) + '°, ' + (+j.longitude).toFixed(2) + '°, ' + (+j.altitude).toFixed(0) + ' km');
+        putIss(j.latitude, j.longitude);
+        timer = setInterval(function () {
+          fetch('https://api.wheretheiss.at/v1/satellites/25544')
+            .then(function (r) { return r.json(); })
+            .then(function (k) { if (k && k.latitude != null) putIss(k.latitude, k.longitude); });
+        }, 10000);
+      })
+      .catch(function () {
+        setStat('Nem sikerült adatot letölteni. Ellenőrizd az internetkapcsolatot, majd frissíts.');
+        rows.innerHTML = '<tr><td colspan="6" class="muted">Nincs adat.</td></tr>';
+      });
+  }
+  function putIss(lat, lon) {
+    if (!manual) manual = g.add({ lat: lat, lon: lon, label: 'ISS', sub: 'Nemzetközi Űrállomás', kind: 'sat', _tmp: true });
+    else { manual.lat = lat; manual.lon = lon; }
+    g.redraw();
+  }
+
+  groups.addEventListener('click', function (e) {
+    var b = e.target.closest('.chip');
+    if (b && b.dataset.g) loadGroup(b.dataset.g);
+  });
+
+  function start() { loadGroup('stations'); }
+  if (window.satellite) start();
+  else window.addEventListener('satreq', start, { once: true });
+  setTimeout(function () { if (!satObjs.length && !manual) start(); }, 4500);
+})();
+</script>
+<script>
+(function () {
+  var rows = document.getElementById('rows');
+  var card = document.getElementById('satcard');
+  if (!rows || !card) return;
+  var nameEl = document.getElementById('satname'), metaEl = document.getElementById('satmeta'),
+      imgEl = document.getElementById('satimg'), txtEl = document.getElementById('sattext'),
+      linkEl = document.getElementById('satlink');
+  var cache = {}, seq = 0;
+
+  var KNOWN = {
+    'STARLINK': 'Starlink', 'ONEWEB': 'OneWeb', 'IRIDIUM': 'Iridium',
+    'GPS': 'GPS', 'GALILEO': 'Galileo', 'GLONASS': 'GLONASS', 'BEIDOU': 'BeiDou',
+    'NOAA': 'NOAA', 'METEOR': 'Meteor', 'ISS': 'Nemzetközi Űrállomás',
+    'CSS': 'Tiangong', 'HUBBLE': 'Hubble', 'TERRA': 'Terra', 'AQUA': 'Aqua',
+    'SENTINEL': 'Sentinel', 'LANDSAT': 'Landsat', 'GOES': 'GOES'
+  };
+  function query(n) {
+    var key = String(n).toUpperCase().split(/[ -]/)[0];
+    return KNOWN[key] || n;
+  }
+  function wiki(lang, q) {
+    var u = 'https://' + lang + '.wikipedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=search&gsrsearch=' + encodeURIComponent(q) + '&gsrlimit=1' +
+      '&prop=pageimages|extracts&piprop=thumbnail&pithumbsize=1000&exintro=1&explaintext=1&exsentences=3';
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) {
+        if (!j || !j.query || !j.query.pages) return null;
+        var ids = Object.keys(j.query.pages);
+        if (!ids.length) return null;
+        var pg = j.query.pages[ids[0]];
+        return { title: pg.title, extract: pg.extract || '',
+                 img: pg.thumbnail ? pg.thumbnail.source : '', lang: lang };
+      });
+  }
+  function show(n) {
+    var id = ++seq;
+    card.hidden = false;
+    nameEl.textContent = n;
+    metaEl.textContent = 'Keresés a Wikipédián…';
+    imgEl.hidden = true;
+    imgEl.removeAttribute('src');
+    txtEl.textContent = '';
+    linkEl.href = 'https://hu.wikipedia.org/w/index.php?search=' + encodeURIComponent(n);
+    linkEl.textContent = 'Keresés a Wikipédián';
+    var q = query(n);
+    if (cache[q] !== undefined) { paint(cache[q], id, q); return; }
+    wiki('hu', q).then(function (r) { return r || wiki('en', q); }).then(function (r) {
+      cache[q] = r || null;
+      paint(cache[q], id, q);
+    }).catch(function () { cache[q] = null; paint(null, id, q); });
+  }
+  function paint(r, id, q) {
+    if (id !== seq) return;
+    if (!r) {
+      metaEl.textContent = 'Nem találtam róla szócikket.';
+      return;
+    }
+    metaEl.textContent = 'Wikipédia · ' + (r.lang === 'hu' ? 'magyar' : 'angol') + ' · keresés: ' + q;
+    if (r.img) {
+      imgEl.onerror = function () { imgEl.hidden = true; };
+      imgEl.src = r.img;
+      imgEl.alt = r.title + ' képe';
+      imgEl.hidden = false;
+    }
+    txtEl.textContent = r.extract || '';
+    linkEl.href = 'https://' + r.lang + '.wikipedia.org/wiki/' + encodeURIComponent(r.title.replace(/ /g, '_'));
+    linkEl.textContent = 'Wikipédia: ' + r.title;
+  }
+
+  rows.addEventListener('click', function (e) {
+    var tr = e.target.closest('tr');
+    if (!tr || tr.children.length < 5) return;
+    var n = tr.children[0].textContent.trim();
+    if (!n || n === 'Név') return;
+    show(n);
+  });
+})();
+</script>
+</body>
+</html>

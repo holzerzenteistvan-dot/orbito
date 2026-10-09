@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Élő repülőforgalom – ORBITA</title>
+<meta name="description" content="Élő repülőforgalom a világ minden tájáról: valós idejű gépek, honnan hová tartanak, interaktív világtérkép.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Élő repülőforgalom – ORBITA">
+<meta property="og:description" content="Valós idejű repülőgépek világszerte, útvonalakkal és interaktív térképpel.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&q=70">
+<link rel="canonical" href="[KITOLTENDO-DOMAIN]/repulok.html">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="style.css?v=14">
+<script src="proxy.js?v=14"></script>
+<style>
+html[data-theme="dark"] .flypage{--bg:#0b0d12;--fg:#ece7db;--dim:#98a1b0;--line:#242a35;--acc:#d9b978;--card:rgba(17,20,26,.9)}
+html[data-theme="light"] .flypage{--bg:#f7f6f2;--fg:#191b1f;--dim:#5c6470;--line:#e2ddd2;--acc:#8a6a1f;--card:rgba(255,255,255,.92)}
+.flypage{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif}
+.fly-top{display:flex;align-items:center;gap:20px;padding:14px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.fly-logo{margin:0;font:600 14px/1 Inter,system-ui;letter-spacing:.34em;text-transform:uppercase;white-space:nowrap}
+.fly-nav{display:flex;gap:16px;flex-wrap:wrap;font-size:13px}
+.fly-nav a{color:var(--dim);text-decoration:none;transition:color .2s}
+.fly-nav a:hover,.fly-nav a.on{color:var(--acc)}
+.fly-tw{margin-left:auto;padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);font:600 11px/1 Inter,system-ui;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.fly-bar{display:flex;align-items:center;gap:10px;padding:12px 22px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.fly-r{padding:9px 18px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);font:600 12px/1 Inter,system-ui;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:.2s}
+.fly-r:hover{border-color:var(--acc)}
+.fly-r.on{background:var(--acc);border-color:var(--acc);color:#0b0d12}
+.fly-st{margin-left:auto;text-align:right;font:12px/1.5 Inter,system-ui;color:var(--dim);max-width:60%}
+.fly-st b{color:var(--acc);font-weight:600}
+.fly-map{position:relative;flex:1;min-height:540px;background:var(--bg)}
+.fly-map canvas{border:0}
+.fly-warn{display:none;color:#e0a33c}
+@media(max-width:640px){
+.fly-top{padding:12px 14px;gap:12px}.fly-bar{padding:10px 14px}.fly-map{min-height:58vh}
+.fly-st{margin-left:0;text-align:left;max-width:100%;font-size:11.5px;order:9;width:100%}
+}
+</style>
+</head>
+<body class="flypage">
+<header class="fly-top">
+  <h1 class="fly-logo">Élő repülőforgalom</h1>
+  <nav class="fly-nav">
+    <a href="index.html">Kezdőlap</a>
+    <a href="fold.html">Föld</a>
+    <a href="varosok.html">Városok</a>
+    <a href="muholdak.html">Műholdak</a>
+    <a href="repulok.html" class="on">Repülők</a>
+    <a href="utvonal.html">Útvonal</a>
+    <a href="galeria.html">Galéria</a>
+  </nav>
+  <button class="fly-tw" id="fly-tw" type="button">Téma</button>
+</header>
+
+<div class="fly-bar">
+  <button class="fly-r" type="button" data-reg="hu">Magyarország</button>
+  <button class="fly-r" type="button" data-reg="eu">Európa</button>
+  <button class="fly-r" type="button" data-reg="world">Világ</button>
+  <div class="fly-st">
+    <div id="fly-status">Adatok betöltése…</div>
+    <div class="fly-warn" id="fly-warn"></div>
+  </div>
+</div>
+
+<div class="fly-map" id="flymap"></div>
+
+<script src="owmap.js?v=14"></script>
+<script src="owmap-alt.js?v=14"></script>
+<script src="route.js?v=14"></script>
+<script>
+(function () {
+  'use strict';
+  var st = document.createElement('style');
+  st.textContent = '#orblist{top:132px!important}@media(max-width:640px){#orblist{top:auto!important}}';
+  (document.head || document.documentElement).appendChild(st);
+
+  var statusEl = document.getElementById('fly-status');
+  var warnEl = document.getElementById('fly-warn');
+  var mapEl = document.getElementById('flymap');
+  var map = null;
+
+  function setStatus(txt) { if (statusEl) statusEl.innerHTML = txt; }
+  function setWarn(txt) {
+    if (!warnEl) return;
+    if (!txt) { warnEl.style.display = 'none'; return; }
+    warnEl.textContent = txt; warnEl.style.display = 'block';
+  }
+
+  /* --- tema --- */
+  try {
+    var saved = localStorage.getItem('theme');
+    if (saved === 'light' || saved === 'dark') document.documentElement.setAttribute('data-theme', saved);
+  } catch (e) {}
+  var tw = document.getElementById('fly-tw');
+  if (tw) tw.addEventListener('click', function () {
+    var now = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', now);
+    try { localStorage.setItem('theme', now); } catch (e) {}
+  });
+
+  /* --- terkep --- */
+  if (window.ORBITA && window.ORBITA.Map) {
+    map = window.ORB_MAP = window.ORBITA.Map(mapEl, { lat: 49, lon: 13, zoom: 4, resetOnEmpty: false });
+  } else {
+    setStatus('A térkép nem indult el (owmap.js hiányzik).');
+  }
+
+  /* --- proxy ellenorzes --- */
+  fetch('/api/proxy?url=' + encodeURIComponent('https://hexdb.io/api/v1/route/icao/TEST')).then(function (r) {
+    if (!r.headers || !r.headers.get('X-Orbita-Proxy')) {
+      setWarn('A helyi adatproxy nem fut. Indítsd így: cd orbita , majd python3 serve.py , és utána nyisd meg a http://localhost:8000/repulok.html címet.');
+    }
+  }).catch(function () {
+    setWarn('A helyi adatproxy nem fut. Indítsd így: cd orbita , majd python3 serve.py , és utána nyisd meg a http://localhost:8000/repulok.html címet.');
+  });
+
+  /* --- adatforrasok --- */
+  function ac(url, ms) {
+    var ctl = ('AbortController' in window) ? new AbortController() : null;
+    var to = setTimeout(function () { if (ctl) ctl.abort(); }, ms || 12000);
+    var opt = ctl ? { signal: ctl.signal, cache: 'no-store' } : { cache: 'no-store' };
+    return fetch(url, opt)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) { clearTimeout(to); return j; });
+  }
+  function fromAC(j) {
+    var a = j && (j.ac || j.aircraft);
+    if (!a || !a.length) return null;
+    var out = [];
+    for (var i = 0; i < a.length; i++) {
+      var x = a[i];
+      if (x.lat == null || x.lon == null) continue;
+      var cs = String(x.flight || x.callsign || '').trim();
+      out.push({ cs: cs, hex: x.hex || '', lat: x.lat, lon: x.lon,
+                 alt: x.alt_baro != null ? Math.round(x.alt_baro) : null,
+                 spd: x.gs != null ? Math.round(x.gs) : null,
+                 trk: x.track != null ? Math.round(x.track) : null,
+                 type: x.t || '', label: cs || (x.t || 'repülő') });
+    }
+    return out.length ? out : null;
+  }
+  function fromOS(j) {
+    var s = j && j.states;
+    if (!s || !s.length) return null;
+    var out = [];
+    for (var i = 0; i < s.length; i++) {
+      var x = s[i];
+      if (x[5] == null || x[6] == null) continue;
+      var cs = String(x[1] || '').trim();
+      out.push({ cs: cs, hex: x[0] || '', lat: x[6], lon: x[5],
+                 alt: x[7] != null ? Math.round(x[7] * 3.281) : (x[13] != null ? Math.round(x[13] * 3.281) : null),
+                 spd: x[9] != null ? Math.round(x[9] * 1.944) : null,
+                 trk: x[10] != null ? Math.round(x[10]) : null,
+                 type: '', label: cs || (x[2] || 'repülő') });
+    }
+    return out.length ? out : null;
+  }
+  var A_ADS = 'https://api.adsb.lol/v2/point/';
+  var A_LIVE = 'https://api.airplanes.live/v2/point/';
+  var OS_ALL = 'https://opensky-network.org/api/states/all';
+  function osBbox(b) {
+    return 'https://opensky-network.org/api/states/all?lamin=' + b[0] + '&lomin=' + b[1] +
+           '&lamax=' + b[2] + '&lomax=' + b[3];
+  }
+  var REG = {
+    hu: { name: 'Magyarország', pts: [[47.35, 19.2, 200]], bbox: [45.6, 15.8, 48.6, 23.2], c: [47.2, 19.2], z: 6.6 },
+    eu: { name: 'Európa', pts: [[50, 6, 250], [52, 22, 250], [44, 10, 250], [44, 26, 250], [58, 26, 250], [40, -6, 250]],
+          bbox: [34, -12, 63, 34], c: [49, 13], z: 4 },
+    world: { name: 'Világ', world: true, c: [18, 8], z: 1.6 }
+  };
+  var GRID = [[50, 10], [40, -74], [34, -118], [19, -99], [-23, -46], [-33, 151], [35, 139], [1, 104], [25, 55], [43, -79], [30, 31], [6, 3]];
+  var data = [], cur = '';
+
+  function apply(list, src, isWorld) {
+    if (list.length > 1400) list = list.slice(0, 1400);
+    data = list;
+    if (map) {
+      map.setPoints(list, false);
+      if (isWorld) map.world();
+      else if (REG[cur]) map.focus({ lat: REG[cur].c[0], lon: REG[cur].c[1] }, REG[cur].z);
+    }
+    setStatus('<b>' + list.length + '</b> repülő · forrás: ' + src);
+    if (!list.length) setWarn('Az adatforrás most nem adott adatot. Próbáld újra fél perc múlva, vagy nézd meg a serve.py ablakát.');
+    else setWarn('');
+  }
+
+  function merge(res) {
+    var all = [], seen = {}, srcs = [];
+    for (var i = 0; i < res.length; i++) {
+      var x = res[i];
+      if (!x) continue;
+      if (srcs.indexOf(x.src) < 0) srcs.push(x.src);
+      for (var k = 0; k < x.list.length; k++) {
+        var p = x.list[k];
+        var id = (p.hex || '') + '|' + (p.cs || '') + '|' + Math.round(p.lat * 20) + '|' + Math.round(p.lon * 20);
+        if (seen[id]) continue;
+        seen[id] = 1; all.push(p);
+      }
+    }
+    return { list: all, srcs: srcs };
+  }
+
+  function load(key) {
+    var r = REG[key];
+    if (!r) return;
+    cur = key;
+    Array.prototype.forEach.call(document.querySelectorAll('.fly-r'), function (b) {
+      b.classList.toggle('on', b.getAttribute('data-reg') === key);
+    });
+    try { localStorage.setItem('orb_region', key); } catch (e) {}
+    setStatus('<b>' + r.name + '</b> betöltése…');
+
+    var jobs = [];
+    if (r.world) {
+      jobs.push(ac(OS_ALL, 25000).then(function (j) { var a = fromOS(j); return a ? { src: 'OpenSky', list: a } : null; }));
+    } else {
+      r.pts.forEach(function (p) {
+        jobs.push(ac(A_ADS + p[0] + '/' + p[1] + '/' + p[2], 12000).then(function (j) {
+          var a = fromAC(j);
+          if (a) return { src: 'ADSB.lol', list: a };
+          return ac(A_LIVE + p[0] + '/' + p[1] + '/' + p[2], 12000).then(function (j2) {
+            var b = fromAC(j2);
+            return b ? { src: 'Airplanes.live', list: b } : null;
+          });
+        }));
+      });
+      jobs.push(ac(osBbox(r.bbox), 15000).then(function (j) { var a = fromOS(j); return a ? { src: 'OpenSky', list: a } : null; }));
+    }
+
+    Promise.all(jobs).then(function (res) {
+      var m = merge(res);
+      if (m.list.length) return apply(m.list, m.srcs.join(' + '), r.world);
+      if (r.world) {
+        return Promise.all(GRID.map(function (p) {
+          return ac(A_ADS + p[0] + '/' + p[1] + '/250', 12000).then(function (j) { return fromAC(j); });
+        })).then(function (arr) {
+          var all = [], seen = {};
+          arr.forEach(function (l) {
+            if (!l) return;
+            l.forEach(function (p) {
+              var id = (p.hex || '') + '|' + Math.round(p.lat * 20) + '|' + Math.round(p.lon * 20);
+              if (seen[id]) return;
+              seen[id] = 1; all.push(p);
+            });
+          });
+          apply(all, all.length ? 'ADSB.lol (világ-pontok)' : 'nincs válasz', true);
+        });
+      }
+      apply([], 'nincs válasz', false);
+    });
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('.fly-r'), function (b) {
+    b.addEventListener('click', function () {
+      var k = b.getAttribute('data-reg');
+      if (map && k === 'world') map.world();
+      load(k);
+    });
+  });
+  window.addEventListener('keydown', function (e) {
+    if (e.key === '1') load('hu');
+    else if (e.key === '2') load('eu');
+    else if (e.key === '3') load('world');
+  });
+
+  var start = 'eu';
+  try { var sr = localStorage.getItem('orb_region'); if (sr && REG[sr]) start = sr; } catch (e) {}
+  load(start);
+  setInterval(function () {
+    if (document.hidden) return;
+    if (data.length) load(cur);
+  }, 45000);
+})();
+</script>
+</body>
+</html>

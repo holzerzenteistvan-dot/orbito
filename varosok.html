@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Városkereső a 3D Földön – bármely város vagy falu | ORBITA</title>
+<meta name="description" content="Keresd meg bármely várost vagy falut a világon, és nézd meg 3D gömbön: koordináta, helyi idő, fotó, majd tervezz onnan utazást.">
+<link rel="canonical" href="https://[KITOLTENDO-DOMAIN]/varosok.html">
+<meta property="og:title" content="Városkereső a 3D Földön | ORBITA">
+<meta property="og:description" content="Keresés bármely városra vagy falura, rázoomolással és fotóval.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=14">
+<script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","name":"Városkereső","inLanguage":"hu","isPartOf":{"@type":"WebSite","name":"ORBITA"}}
+</script>
+<script src="proxy.js?v=14"></script>
+</head>
+<body>
+<h1 class="sr">Városkereső a 3D Földön – bármely város vagy falu megkereshető</h1>
+<div class="progress"><i></i></div>
+<div class="gh">
+  <div class="stars" data-stars="160"></div>
+
+  <div class="stage" id="stage">
+    <div class="glabels" id="glabels"></div>
+  </div>
+
+  <div class="gh-top">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>ORBITA</a>
+    <nav class="nav-links" aria-label="Főmenü">
+      <a href="fold.html">Föld</a><a class="on" href="varosok.html">Városok</a><a href="muholdak.html">Műholdak</a>
+      <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonal</a><a href="galeria.html">Galéria</a>
+    </nav>
+    <div class="nav-act">
+      <button class="icon-btn" data-theme-toggle aria-label="Világos vagy sötét téma" type="button"></button>
+      <button class="burger" aria-label="Menü megnyitása" aria-expanded="false" type="button"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <div class="gsearch">
+    <div class="gsearch-in">
+      <label class="sr" for="q">Városkereső</label>
+      <input id="q" type="search" placeholder="Keress várost vagy falut – pl. Budapest, Párizs, Boconád…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="ac" aria-autocomplete="list">
+      <button class="btn btn-p btn-s" id="qbtn" type="button">Keresés</button>
+    </div>
+    <div class="ac" id="ac" role="listbox"></div>
+  </div>
+
+  <div class="gpanels">
+    <div class="gpanel info" id="info">
+      <h3 id="iName">Keress egy várost</h3>
+      <p class="coords" id="iCoords">Írj be egy nevet, vagy kattints a gömbön lévő pontra.</p>
+      <img class="cphoto" id="iPhoto" alt="" hidden loading="lazy">
+      <div class="cphotogrid" id="iThumbs"></div>
+      <dl class="kv" id="iKv" hidden></dl>
+      <p class="small muted" id="iCredit"></p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:10px">
+        <a class="btn btn-s" id="iTrip" href="utvonal.html">Utazás innen</a>
+        <a class="btn btn-s" id="iTo" href="utvonal.html">Utazás ide</a>
+      </div>
+    </div>
+    <div class="dock">
+      <a href="fold.html">Föld</a><a href="muholdak.html">Műholdak</a><a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonal</a>
+    </div>
+  </div>
+
+  <div class="ghint">Kattints a pontra a nagyításhoz · üres helyre kattintva visszaáll</div>
+</div>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Főoldal</a><a href="fold.html">Föld</a><a href="muholdak.html">Műholdak</a>
+  <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonaltervező</a><a href="galeria.html">Galéria</a>
+  <a href="#" data-open-consent>Süti-beállítások</a>
+</div>
+
+<script src="app.js?v=14"></script>
+<script src="globe.js?v=14"></script>
+<script src="citydata.js?v=14"></script>
+<script>
+(function () {
+  var CITIES = window.ORBITA_CITIES || [];
+  var stage = document.getElementById('stage');
+  var labels = document.getElementById('glabels');
+  if (!stage || !window.ORBITA || !ORBITA.Globe) return;
+
+  var c = document.createElement('canvas');
+  c.className = 'orbit-canvas';
+  c.setAttribute('role', 'img');
+  c.setAttribute('aria-label', '3D Föld városokkal');
+  stage.insertBefore(c, labels);
+
+  var marks = CITIES.map(function (x) {
+    return { lat: x.lat, lon: x.lon, label: x.name, sub: x.country, kind: 'city', city: x };
+  });
+
+  var g = ORBITA.Globe(c, {
+    host: stage, labelHost: labels, lat: 22, lon: 8, marks: marks,
+    onPick: function (m) { pick(m); },
+    onOutside: function () {}
+  });
+
+  var ac = document.getElementById('ac'), q = document.getElementById('q');
+  var iName = document.getElementById('iName'),
+      iCoords = document.getElementById('iCoords'),
+      iKv = document.getElementById('iKv'),
+      iPhoto = document.getElementById('iPhoto'),
+      iThumbs = document.getElementById('iThumbs'),
+      iCredit = document.getElementById('iCredit'),
+      iTrip = document.getElementById('iTrip'),
+      iTo = document.getElementById('iTo');
+
+  var photoCache = {}, seq = 0, current = null;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    });
+  }
+  function norm(s) {
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  }
+
+  /* ---------- javaslatlista ---------- */
+  var items = [], sel = -1, timer = null;
+  function render(list) {
+    items = list; sel = -1;
+    if (!list.length) { ac.classList.remove('open'); q.setAttribute('aria-expanded', 'false'); return; }
+    ac.innerHTML = list.map(function (x, i) {
+      return '<button type="button" role="option" data-i="' + i + '"><b>' + esc(x.name) + '</b>' +
+        (x.country || x.type ? '<small>' + esc([x.type, x.country].filter(Boolean).join(' · ')) + '</small>' : '') +
+        '</button>';
+    }).join('');
+    ac.classList.add('open');
+    q.setAttribute('aria-expanded', 'true');
+  }
+  function localSearch(v) {
+    var n = norm(v), out = [];
+    for (var i = 0; i < CITIES.length; i++) {
+      var x = CITIES[i];
+      var idx = norm(x.name).indexOf(n);
+      if (idx > -1) out.push({ p: x, idx: idx });
+    }
+    out.sort(function (a, b) { return a.idx - b.idx || a.p.name.length - b.p.name.length; });
+    return out.slice(0, 7).map(function (o) {
+      return { name: o.p.name, country: o.p.country, lat: o.p.lat, lon: o.p.lon };
+    });
+  }
+  function remoteSearch(v) {
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&addressdetails=1&accept-language=hu&q=' +
+      encodeURIComponent(v);
+    return fetch(url, { headers: { Accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; })
+      .then(function (rows) {
+        return rows.map(function (r) {
+          var a = r.address || {};
+          var kind = a.city ? 'város' : a.town ? 'kisváros' : a.village ? 'falu' :
+            a.hamlet ? 'település' : a.municipality ? 'község' : a.county ? 'megye' : '';
+          var name = r.name || String(r.display_name || '').split(',')[0];
+          return { name: name, country: a.country || '', lat: +r.lat, lon: +r.lon, type: kind };
+        }).filter(function (r) { return r.lat && r.lon && Math.abs(r.lat) <= 90 && Math.abs(r.lon) <= 180; });
+      });
+  }
+  function search(v) {
+    var loc = localSearch(v);
+    render(loc);
+    clearTimeout(timer);
+    if (v.length < 3) return;
+    timer = setTimeout(function () {
+      var query = v;
+      remoteSearch(query).then(function (rem) {
+        if (q.value.trim() !== query) return;
+        var seen = {}, merged = [];
+        loc.concat(rem).forEach(function (x) {
+          var k = norm(x.name) + '|' + norm(x.country);
+          if (seen[k]) return;
+          seen[k] = 1; merged.push(x);
+        });
+        render(merged.slice(0, 9));
+      });
+    }, 380);
+  }
+  q.addEventListener('input', function () {
+    var v = q.value.trim();
+    if (!v) { render([]); return; }
+    search(v);
+  });
+  q.addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(items.length - 1, sel + 1); mark(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(0, sel - 1); mark(); }
+    else if (e.key === 'Enter') { e.preventDefault(); var pick = items[sel] || items[0]; if (pick) choose(pick); }
+    else if (e.key === 'Escape') { render([]); }
+  });
+  function mark() {
+    Array.prototype.forEach.call(ac.children, function (b, i) { b.classList.toggle('sel', i === sel); });
+    if (ac.children[sel]) ac.children[sel].scrollIntoView({ block: 'nearest' });
+  }
+  ac.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-i]');
+    if (b) choose(items[+b.dataset.i]);
+  });
+  document.getElementById('qbtn').addEventListener('click', function () {
+    var pick = items[sel] || items[0];
+    if (pick) choose(pick); else if (q.value.trim().length > 1) search(q.value.trim());
+  });
+  document.addEventListener('click', function (e) { if (!e.target.closest('.gsearch')) render([]); });
+
+  /* ---------- kiválasztás ---------- */
+  function choose(place) {
+    if (!place) return;
+    render([]); q.blur();
+    var m = null;
+    for (var i = 0; i < g.markers.length; i++) {
+      var x = g.markers[i];
+      if (x.label === place.name && Math.abs(x.lat - place.lat) < 0.25 && Math.abs(x.lon - place.lon) < 0.25) { m = x; break; }
+    }
+    if (!m) m = g.add({ lat: place.lat, lon: place.lon, label: place.name, sub: place.country || '', kind: 'city', _tmp: true });
+    if (g.removeIf) g.removeIf(function (x) { return x._tmp && x !== m; });
+    show(place);
+    g.focus(m);
+  }
+  function pick(m) {
+    var p = m.city || { name: m.label, country: m.sub, lat: m.lat, lon: m.lon };
+    show(p);
+  }
+
+  /* ---------- adatpanel ---------- */
+  function localTime(lon) {
+    var d = new Date(), utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    var off = Math.round(lon / 15), t = new Date(utc + off * 3600000);
+    return t.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) + ' · UTC' + (off >= 0 ? '+' : '') + off;
+  }
+  function solar(lat, lon) {
+    var d = new Date();
+    var h = d.getUTCHours() + d.getUTCMinutes() / 60;
+    var s = (((h + lon / 15) % 24) + 24) % 24;
+    var doy = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 0)) / 86400000);
+    var dec = -23.44 * Math.cos(2 * Math.PI * (doy + 10) / 365) * Math.PI / 180;
+    var la = lat * Math.PI / 180;
+    var alt = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos((s - 12) * Math.PI / 12)) * 180 / Math.PI;
+    return (s >= 6 && s < 18 ? 'nappal' : 'éjszaka') + ' · napmagasság ' + alt.toFixed(0) + '°';
+  }
+  function dayLen(lat) {
+    var d = new Date();
+    var doy = Math.floor((d - Date.UTC(d.getUTCFullYear(), 0, 0)) / 86400000);
+    var dec = -23.44 * Math.cos(2 * Math.PI * (doy + 10) / 365) * Math.PI / 180;
+    var la = lat * Math.PI / 180;
+    var cosH = -Math.tan(la) * Math.tan(dec);
+    if (cosH <= -1) return '24 óra nappal';
+    if (cosH >= 1) return '24 óra éjszaka';
+    var h = Math.acos(cosH) * 12 / Math.PI;
+    return h.toFixed(1) + ' óra nappal / ' + (24 - h).toFixed(1) + ' óra éjszaka';
+  }
+  function zone(lat) {
+    var a = Math.abs(lat);
+    if (a < 23.5) return 'trópusi';
+    if (a < 35) return 'szubtrópusi';
+    if (a < 55) return 'mérsékelt';
+    if (a < 66.5) return 'hideg mérsékelt';
+    return 'sarkvidéki';
+  }
+
+  function show(p) {
+    current = p;
+    var id = ++seq;
+    iName.textContent = p.name;
+    iCoords.textContent = 'Szélesség ' + p.lat.toFixed(4) + '° · Hosszúság ' + p.lon.toFixed(4) + '°';
+    iKv.hidden = false;
+    iKv.innerHTML =
+      '<dt>Ország / régió</dt><dd>' + esc(p.country || p.type || '–') + '</dd>' +
+      (p.type ? '<dt>Típus</dt><dd>' + esc(p.type) + '</dd>' : '') +
+      '<dt>Helyi idő (kb.)</dt><dd>' + localTime(p.lon) + '</dd>' +
+      '<dt>Nap állapota</dt><dd>' + solar(p.lat, p.lon) + '</dd>' +
+      '<dt>Nappal hossza</dt><dd>' + dayLen(p.lat) + '</dd>' +
+      '<dt>Éghajlati öv</dt><dd>' + zone(p.lat) + '</dd>' +
+      '<dt>Időzóna</dt><dd>UTC' + (Math.round(p.lon / 15) >= 0 ? '+' : '') + Math.round(p.lon / 15) + '</dd>';
+    iTrip.href = 'utvonal.html?from=' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4) + ',' + encodeURIComponent(p.name);
+    iTo.href = 'utvonal.html?to=' + p.lat.toFixed(4) + ',' + p.lon.toFixed(4) + ',' + encodeURIComponent(p.name);
+    iPhoto.hidden = true;
+    iPhoto.removeAttribute('src');
+    iThumbs.innerHTML = '';
+    iCredit.textContent = 'Fotó betöltése…';
+    loadPhoto(p, id);
+  }
+
+  function loadPhoto(p, id) {
+    var key = norm(p.name) + '|' + p.lat.toFixed(2);
+    if (photoCache[key] !== undefined) { paintPhoto(photoCache[key], id); return; }
+    wikiPhoto(p, 'hu')
+      .then(function (r) { return r || wikiPhoto(p, 'en'); })
+      .then(function (r) { return r || commonsPhoto(p); })
+      .then(function (r) { return r || restPhoto(p, 'hu'); })
+      .then(function (r) { return r || restPhoto(p, 'en'); })
+      .then(function (r) {
+        photoCache[key] = r || null;
+        paintPhoto(photoCache[key], id);
+      })
+      .catch(function () { photoCache[key] = null; paintPhoto(null, id); });
+  }
+  function restPhoto(p, lang) {
+    var u = 'https://' + lang + '.wikipedia.org/api/rest_v1/page/summary/' +
+      encodeURIComponent(String(p.name).replace(/ /g, '_')) + '?redirect=true';
+    return fetch(u).then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) {
+        if (!j || !j.thumbnail || !j.thumbnail.source) return null;
+        return { main: j.thumbnail.source.replace(/\/\d+px-/, '/1000px-'), thumbs: [] };
+      });
+  }
+  function wikiPhoto(p, lang) {
+    var u = 'https://' + lang + '.wikipedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=geosearch&ggscoord=' + p.lat + '%7C' + p.lon +
+      '&ggsradius=10000&ggslimit=8&prop=pageimages&piprop=thumbnail&pithumbsize=1000';
+    return fetch(u)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) {
+        if (!j || !j.query || !j.query.pages) return null;
+        var arr = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })
+          .filter(function (x) { return x.thumbnail && x.thumbnail.source; });
+        if (!arr.length) return null;
+        return {
+          main: arr[0].thumbnail.source,
+          thumbs: arr.slice(1, 4).map(function (x) { return x.thumbnail.source; })
+        };
+      });
+  }
+  function commonsPhoto(p) {
+    var u = 'https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*' +
+      '&generator=geosearch&ggscoord=' + p.lat + '%7C' + p.lon +
+      '&ggsradius=10000&ggslimit=6&ggsnamespace=6&prop=imageinfo&iiprop=url&iiurlwidth=1000';
+    return fetch(u)
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .catch(function () { return null; })
+      .then(function (j) {
+        if (!j || !j.query || !j.query.pages) return null;
+        var arr = Object.keys(j.query.pages).map(function (k) { return j.query.pages[k]; })
+          .filter(function (x) { return x.imageinfo && x.imageinfo[0] && x.imageinfo[0].thumburl; });
+        if (!arr.length) return null;
+        return {
+          main: arr[0].imageinfo[0].thumburl,
+          thumbs: arr.slice(1, 4).map(function (x) { return x.imageinfo[0].thumburl; })
+        };
+      });
+  }
+  function paintPhoto(res, id) {
+    if (id !== seq) return;
+    if (!res || !res.main) {
+      iCredit.textContent = 'Ehhez a helyhez nem találtunk szabad fotót.';
+      return;
+    }
+    iPhoto.onerror = function () { iPhoto.hidden = true; };
+    iPhoto.src = res.main;
+    iPhoto.alt = (current ? current.name : '') + ' látképe';
+    iPhoto.hidden = false;
+    iThumbs.innerHTML = (res.thumbs || []).slice(0, 3).map(function (u) {
+      return '<img src="' + u + '" alt="' + esc(current ? current.name : '') + ' további képe" loading="lazy" onerror="this.remove()">';
+    }).join('');
+    iCredit.textContent = 'Fotó: Wikimedia Commons / Wikipédia';
+  }
+
+  /* ---------- URL előtöltés ---------- */
+  var params = new URLSearchParams(location.search);
+  var qq = params.get('q');
+  if (qq) {
+    q.value = qq;
+    search(qq);
+    setTimeout(function () { var pick = items[0]; if (pick) choose(pick); }, 1100);
+  }
+})();
+</script>
+</body>
+</html>

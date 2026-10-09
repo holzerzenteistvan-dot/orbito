@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="hu" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Élő 3D Föld – forgatható bolygó nappal és éjszaka | ORBITA</title>
+<meta name="description" content="Teljes képernyős, forgatható 3D Föld valós idejű nappali és éjszakai megvilágítással, városfényekkel. Kattints bármely városra, és nézd meg az adatait.">
+<link rel="canonical" href="https://[KITOLTENDO-DOMAIN]/fold.html">
+<meta property="og:title" content="Élő 3D Föld | ORBITA">
+<meta property="og:description" content="Forgatható bolygó nappali és éjszakai oldallal, városfényekkel.">
+<meta property="og:image" content="https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=14">
+<script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"ORBITA 3D Föld","applicationCategory":"EducationalApplication","operatingSystem":"Web","inLanguage":"hu"}
+</script>
+<script src="proxy.js?v=14"></script>
+</head>
+<body>
+<h1 class="sr">Élő 3D Föld – forgatható bolygó nappali és éjszakai oldallal</h1>
+<div class="progress"><i></i></div>
+<div class="gh">
+  <div class="stars" data-stars="160"></div>
+
+  <div class="stage" id="stage">
+    <div class="glabels" id="glabels"></div>
+  </div>
+
+  <div class="gh-top">
+    <a class="brand" href="index.html"><span class="brand-mark"></span>ORBITA</a>
+    <nav class="nav-links" aria-label="Főmenü">
+      <a class="on" href="fold.html">Föld</a><a href="varosok.html">Városok</a><a href="muholdak.html">Műholdak</a>
+      <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonal</a><a href="galeria.html">Galéria</a>
+    </nav>
+    <div class="nav-act">
+      <button class="icon-btn" data-theme-toggle aria-label="Világos vagy sötét téma" type="button"></button>
+      <button class="burger" aria-label="Menü megnyitása" aria-expanded="false" type="button"><span></span><span></span><span></span></button>
+    </div>
+  </div>
+
+  <div class="gpanels">
+    <div class="gpanel info" id="info">
+      <h3 id="iName">A Föld</h3>
+      <p class="coords" id="iCoords">Húzd az egeret a forgatáshoz · görgővel nagyítás</p>
+      <dl class="kv" id="iKv" hidden></dl>
+      <p class="small muted" id="iText">Kattints a gömb bármely pontjára: ha város van ott, rázoomol és kiírja az adatait. Ha nem a Földre kattintasz, a nagyítás visszaáll.</p>
+      <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px">
+        <a class="btn btn-s" href="varosok.html">Város keresése</a>
+        <a class="btn btn-s" href="utvonal.html" id="iTrip">Utazás innen</a>
+      </div>
+    </div>
+    <div class="dock">
+      <a href="varosok.html">Városok</a><a href="muholdak.html">Műholdak</a><a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonal</a>
+    </div>
+  </div>
+
+  <div class="ghint">Húzd az egeret · görgővel nagyítás · kattints a városra</div>
+</div>
+
+<div class="drawer" id="drawer">
+  <a href="index.html">Főoldal</a><a href="varosok.html">Városok</a><a href="muholdak.html">Műholdak</a>
+  <a href="repulok.html">Repülők</a><a href="utvonal.html">Útvonaltervező</a><a href="galeria.html">Galéria</a>
+  <a href="#" data-open-consent>Süti-beállítások</a>
+</div>
+
+<script src="app.js?v=14"></script>
+<script src="globe.js?v=14"></script>
+<script src="citydata.js?v=14"></script>
+<script>
+(function () {
+  var stage = document.getElementById('stage');
+  var labels = document.getElementById('glabels');
+  if (!stage || !window.ORBITA || !ORBITA.Globe) return;
+
+  var c = document.createElement('canvas');
+  c.className = 'orbit-canvas';
+  c.setAttribute('role', 'img');
+  c.setAttribute('aria-label', 'Forgatható 3D Föld gömb');
+  stage.insertBefore(c, labels);
+
+  var all = window.ORBITA_CITIES || [];
+  var marks = all.map(function (x) {
+    return { lat: x.lat, lon: x.lon, label: x.name, sub: x.country, kind: 'city', city: x };
+  });
+
+  var g = ORBITA.Globe(c, {
+    host: stage,
+    labelHost: labels,
+    lat: 24, lon: 10,
+    marks: marks,
+    onPick: function (m) { show(m); },
+    onOutside: function () { reset(); }
+  });
+
+  var iName = document.getElementById('iName'),
+      iCoords = document.getElementById('iCoords'),
+      iKv = document.getElementById('iKv'),
+      iText = document.getElementById('iText'),
+      iTrip = document.getElementById('iTrip');
+
+  function localTime(lon) {
+    var d = new Date();
+    var utc = d.getTime() + d.getTimezoneOffset() * 60000;
+    var off = Math.round(lon / 15);
+    var t = new Date(utc + off * 3600000);
+    return t.toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }) +
+      ' (kb. UTC' + (off >= 0 ? '+' : '') + off + ')';
+  }
+  function solar(lat, lon) {
+    var d = new Date();
+    var h = d.getUTCHours() + d.getUTCMinutes() / 60;
+    var s = (((h + lon / 15) % 24) + 24) % 24;
+    var dayOfYear = Math.floor((d - new Date(d.getUTCFullYear(), 0, 0)) / 86400000);
+    var dec = -23.44 * Math.cos(2 * Math.PI * (dayOfYear + 10) / 365) * Math.PI / 180;
+    var la = lat * Math.PI / 180;
+    var alt = Math.asin(Math.sin(la) * Math.sin(dec) + Math.cos(la) * Math.cos(dec) * Math.cos((s - 12) * Math.PI / 12)) * 180 / Math.PI;
+    return (s >= 6 && s < 18 ? 'nappal' : 'éjszaka') + ' · napmagasság ' + alt.toFixed(0) + '°';
+  }
+  function zone(lat) {
+    var a = Math.abs(lat);
+    if (a < 23.5) return 'trópusi';
+    if (a < 35) return 'szubtrópusi';
+    if (a < 55) return 'mérsékelt';
+    if (a < 66.5) return 'hideg mérsékelt';
+    return 'sarkvidéki';
+  }
+  function show(m) {
+    iName.textContent = m.label;
+    iCoords.textContent = 'Szélesség ' + m.lat.toFixed(2) + '° · Hosszúság ' + m.lon.toFixed(2) + '°';
+    iKv.hidden = false;
+    iKv.innerHTML =
+      '<dt>Ország / régió</dt><dd>' + (m.sub || '–') + '</dd>' +
+      '<dt>Helyi idő (kb.)</dt><dd>' + localTime(m.lon) + '</dd>' +
+      '<dt>Nap állapota</dt><dd>' + solar(m.lat, m.lon) + '</dd>' +
+      '<dt>Éghajlati öv</dt><dd>' + zone(m.lat) + '</dd>' +
+      '<dt>Időzóna</dt><dd>UTC' + (Math.round(m.lon / 15) >= 0 ? '+' : '') + Math.round(m.lon / 15) + '</dd>';
+    iText.textContent = 'Fotó és bővebb leírás a Városok oldalon: keress rá a névre.';
+    iTrip.href = 'utvonal.html?from=' + m.lat.toFixed(4) + ',' + m.lon.toFixed(4) + ',' + encodeURIComponent(m.label);
+  }
+  function reset() {
+    iName.textContent = 'A Föld';
+    iCoords.textContent = 'Húzd az egeret a forgatáshoz · görgővel nagyítás';
+    iKv.hidden = true;
+    iText.textContent = 'Kattints a gömb bármely pontjára: ha város van ott, rázoomol és kiírja az adatait. Ha nem a Földre kattintasz, a nagyítás visszaáll.';
+  }
+})();
+</script>
+</body>
+</html>
