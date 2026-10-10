@@ -11,7 +11,7 @@
 <meta property="og:image" content="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=1200&q=80">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=17">
 <style>
   .recbox{border:1px solid var(--line2);border-radius:16px;padding:18px 20px;margin-bottom:16px;
           background:rgba(217,185,120,.07)}
@@ -32,7 +32,7 @@
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"ORBITA Útvonaltervező","applicationCategory":"TravelApplication","operatingSystem":"Web","inLanguage":"hu","offers":{"@type":"Offer","price":"0","priceCurrency":"HUF"}}
 </script>
-<script src="proxy.js?v=14"></script>
+<script src="proxy.js?v=17"></script>
 </head>
 <body>
 <div class="progress"><i></i></div>
@@ -108,8 +108,8 @@
         <p class="owhint" id="mapinfo">Húzd az egeret a mozgatáshoz · görgővel nagyítás · dupla kattintás: az útvonalra igazít</p>
 
         <div style="display:flex;gap:9px;flex-wrap:wrap;margin-top:14px">
-          <a class="btn btn-s" id="gdir" href="#" target="_blank" rel="noopener">Útvonal a Google Maps-en</a>
-          <a class="btn btn-s" id="gplace" href="#" target="_blank" rel="noopener">Úti cél a Google Maps-en</a>
+          <a class="btn btn-s" id="gdir" href="#" aria-disabled="true" target="_blank" rel="noopener">Útvonal a Google Maps-en</a>
+          <a class="btn btn-s" id="gplace" href="#" aria-disabled="true" target="_blank" rel="noopener">Úti cél a Google Maps-en</a>
         </div>
 
         <div class="dest" id="dest" hidden>
@@ -156,9 +156,9 @@
   </div>
 </footer>
 
-<script src="app.js?v=14"></script>
-<script src="owmap.js?v=14"></script>
-<script src="owmap-alt.js?v=14"></script>
+<script src="config.js"></script>
+<script src="app.js?v=17"></script>
+<script src="owmap.js?v=17"></script>
 <script>
 (function () {
   'use strict';
@@ -358,6 +358,8 @@
   function updateGoogle() {
     if (!CURRENT) return;
     var A = CURRENT.A, B = CURRENT.B;
+    $('#gdir').setAttribute('aria-disabled', 'false');
+    $('#gplace').setAttribute('aria-disabled', 'false');
     var gm = modeDef(mode).gm;
     $('#gdir').href = 'https://www.google.com/maps/dir/?api=1&origin=' + A[0].toFixed(5) + ',' + A[1].toFixed(5) +
       '&destination=' + B[0].toFixed(5) + ',' + B[1].toFixed(5) + '&travelmode=' + gm;
@@ -420,6 +422,26 @@
   /* ---------- számítás ---------- */
   var CURRENT = null;
 
+  // A gomb akkor is működjön, ha valaki nem kattintott a javaslatra.
+  function geocodeTyped(input) {
+    var query = String(input.value || '').trim();
+    if (input.dataset.lat && input.dataset.lon) return Promise.resolve(true);
+    if (query.length < 2) return Promise.resolve(false);
+    return fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&addressdetails=1&accept-language=hu&q=' + encodeURIComponent(query), {
+      headers: { Accept: 'application/json' }
+    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+      var x = rows && rows[0];
+      if (!x || !isFinite(+x.lat) || !isFinite(+x.lon)) return false;
+      var display = String(x.display_name || query);
+      input.dataset.lat = String(+x.lat);
+      input.dataset.lon = String(+x.lon);
+      input.dataset.label = display;
+      input.value = display.split(',').slice(0, 3).join(', ');
+      input.closest('.field').classList.remove('bad');
+      return true;
+    }).catch(function () { return false; });
+  }
+
   function run() {
     var a = $('#from'), b = $('#to');
     var oka = a.dataset.lat && a.dataset.lon;
@@ -429,7 +451,17 @@
     $('#cmp').hidden = true;
     $('#cmpempty').hidden = false;
     if (!oka || !okb) {
-      ORBITA.toast('Válassz ki egy találatot a javaslatokból mindkét mezőnél.', 'bad');
+      var go = $('#go'), oldText = go.textContent;
+      go.disabled = true;
+      go.textContent = 'Helyek keresése…';
+      $('#sum').textContent = 'Megpróbálom megkeresni a beírt helyeket…';
+      Promise.all([geocodeTyped(a), geocodeTyped(b)]).then(function (ok) {
+        if (ok[0] && ok[1]) { run(); return; }
+        a.closest('.field').classList.toggle('bad', !ok[0]);
+        b.closest('.field').classList.toggle('bad', !ok[1]);
+        $('#sum').textContent = 'Nem sikerült mindkét helyet egyértelműen megtalálni.';
+        ORBITA.toast('Ellenőrizd a helyneveket. Választhatsz a megjelenő javaslatokból is.', 'bad');
+      }).finally(function () { go.disabled = false; go.textContent = oldText; });
       return;
     }
     var A = [+a.dataset.lat, +a.dataset.lon], B = [+b.dataset.lat, +b.dataset.lon];
@@ -508,6 +540,7 @@
     updateGoogle();
   });
 
+  ['#gdir', '#gplace'].forEach(function (sel) { $(sel).addEventListener('click', function (e) { if (this.getAttribute('aria-disabled') === 'true') { e.preventDefault(); ORBITA.toast('Előbb számítsd ki az útvonalat.', 'bad'); } }); });
   $('#go').addEventListener('click', run);
   $('#fit').addEventListener('click', function () { M.world(); });
   $('#swap').addEventListener('click', function () {
@@ -515,6 +548,7 @@
     var tv = a.value, tl = a.dataset.label, tla = a.dataset.lat, tlo = a.dataset.lon;
     a.value = b.value; a.dataset.label = b.dataset.label; a.dataset.lat = b.dataset.lat; a.dataset.lon = b.dataset.lon;
     b.value = tv; b.dataset.label = tl; b.dataset.lat = tla; b.dataset.lon = tlo;
+    if (CURRENT && a.dataset.lat && b.dataset.lat) run();
   });
 
   (function () {

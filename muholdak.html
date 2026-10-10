@@ -11,12 +11,12 @@
 <meta property="og:image" content="https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?auto=format&fit=crop&w=1200&q=80">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=17">
 <script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"Dataset","name":"Élő műholdpozíciók","inLanguage":"hu","creator":{"@type":"Organization","name":"CelesTrak"}}
 </script>
-<script src="proxy.js?v=14"></script>
+<script src="proxy.js?v=17"></script>
 </head>
 <body>
 <h1 class="sr">Élő műholdkövetés – űrállomások, GPS és időjárási műholdak</h1>
@@ -45,13 +45,14 @@
       <h3>Műholdkövetés</h3>
       <p class="coords" id="stat"><span class="load"></span> Adatok betöltése…</p>
       <div class="pkglist" id="groups" style="margin-top:12px">
-        <button class="chip on" data-g="stations" type="button">Űrállomások</button>
-        <button class="chip" data-g="visual" type="button">Legfényesebbek</button>
-        <button class="chip" data-g="gps-ops" type="button">GPS</button>
-        <button class="chip" data-g="weather" type="button">Időjárás</button>
-        <button class="chip" data-g="science" type="button">Tudomány</button>
+        <button class="chip on" data-g="stations" type="button" aria-pressed="true">Űrállomások</button>
+        <button class="chip" data-g="visual" type="button" aria-pressed="false">Legfényesebbek</button>
+        <button class="chip" data-g="gps-ops" type="button" aria-pressed="false">GPS</button>
+        <button class="chip" data-g="weather" type="button" aria-pressed="false">Időjárás</button>
+        <button class="chip" data-g="science" type="button" aria-pressed="false">Tudomány</button>
       </div>
-      <p class="small muted">A pályapontok a böngésződben számolódnak a nyílt TLE-adatokból. Frissítés 20 másodpercenként.</p>
+      <button class="btn btn-s mt1" id="sat-refresh" type="button">↻ Frissítés most</button>
+      <p class="small muted">A pályapontok a böngésződben számolódnak nyílt TLE-adatokból. Ha a pontos pályaszámító nem érhető el, közelítő modell lép működésbe. Frissítés 20 másodpercenként.</p>
     </div>
     <div class="gpanel info" id="satcard" hidden>
       <h3 id="satname">Műhold</h3>
@@ -96,8 +97,10 @@
   <a href="#" data-open-consent>Süti-beállítások</a>
 </div>
 
-<script src="app.js?v=14"></script>
-<script src="globe.js?v=14"></script>
+<script src="config.js"></script>
+<script src="app.js?v=17"></script>
+<script src="globe.js?v=17"></script>
+<script src="satellite-lite.js?v=17"></script>
 <script>
 /* satellite.js betöltése két tartalékkal */
 (function () {
@@ -107,13 +110,16 @@
     'https://unpkg.com/satellite.js@4.1.4/dist/satellite.min.js'
   ];
   var i = 0;
+  function done() { window.dispatchEvent(new Event('satreq')); }
   function load() {
-    if (window.satellite) { window.dispatchEvent(new Event('satreq')); return; }
-    if (i >= srcs.length) { window.dispatchEvent(new Event('satreq')); return; }
-    var s = document.createElement('script');
+    if (window.satellite) { done(); return; }
+    if (i >= srcs.length) { window.satellite = window.ORBITA_SAT_LITE || null; done(); return; }
+    var s = document.createElement('script'), finished = false, timer;
+    function next() { if (finished) return; finished = true; clearTimeout(timer); load(); }
     s.src = srcs[i++];
-    s.onload = function () { window.dispatchEvent(new Event('satreq')); };
-    s.onerror = load;
+    s.onload = function () { if (finished) return; finished = true; clearTimeout(timer); done(); };
+    s.onerror = next;
+    timer = setTimeout(next, 1400);
     document.head.appendChild(s);
   }
   load();
@@ -146,7 +152,8 @@
       stat = document.getElementById('stat'),
       groups = document.getElementById('groups');
 
-  var sats = [], satObjs = [], satset = [], group = 'stations', timer = null, pool = [], manual = null;
+  var sats = [], satObjs = [], satset = [], group = 'stations', timer = null, pool = [], manual = null, loadSeq = 0;
+  var refreshBtn = document.getElementById('sat-refresh');
   var GROUPNAMES = { stations: 'űrállomások', visual: 'legfényesebbek', 'gps-ops': 'GPS', weather: 'időjárás', science: 'tudományos' };
 
   function esc(s) {
@@ -203,19 +210,30 @@
   /* ---------- csoportváltás ---------- */
   function loadGroup(gp) {
     group = gp;
+    var req = ++loadSeq;
     Array.prototype.forEach.call(groups.querySelectorAll('.chip'), function (b) {
-      b.classList.toggle('on', b.dataset.g === gp);
+      var active = b.dataset.g === gp;
+      b.classList.toggle('on', active);
+      b.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
+    if (refreshBtn) { refreshBtn.disabled = true; refreshBtn.textContent = 'Betöltés…'; }
     setStat('<span class="load"></span> ' + (GROUPNAMES[gp] || gp) + ' betöltése…');
     clearInterval(timer);
     if (g.removeIf) g.removeIf(function (m) { return m.kind === 'sat'; });
     pool = [];
 
     grab(gp).then(function (list) {
+      if (req !== loadSeq) return;
       if (!list.length) throw 0;
       setup(list);
     }).catch(function () {
+      if (req !== loadSeq) return;
       issFallback();
+    }).then(function () {
+      if (req === loadSeq && refreshBtn) {
+        refreshBtn.disabled = false;
+        refreshBtn.textContent = '↻ Frissítés most';
+      }
     });
   }
 
@@ -309,7 +327,7 @@
 
   /* ---------- tartalékok ---------- */
   function fallbackNoLib() {
-    setStat('A pályaszámító könyvtár nem töltődött be – ISS közvetlen forrásból.');
+    setStat('A pontos pályaszámító nem érhető el – egyszerűsített modellre váltunk, vagy csak az ISS adata látható.');
     issFallback(true);
   }
   function issFallback(nolib) {
@@ -342,8 +360,9 @@
 
   groups.addEventListener('click', function (e) {
     var b = e.target.closest('.chip');
-    if (b && b.dataset.g) loadGroup(b.dataset.g);
+    if (b && b.dataset.g && b.dataset.g !== group) loadGroup(b.dataset.g);
   });
+  if (refreshBtn) refreshBtn.addEventListener('click', function () { loadGroup(group); });
 
   function start() { loadGroup('stations'); }
   if (window.satellite) start();

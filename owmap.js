@@ -4,6 +4,12 @@
 (function () {
   'use strict';
   var O = window.ORBITA = window.ORBITA || {};
+  O.ALT_BANDS = [[0, '#66c7f4', '0–10 000 ft'], [10000, '#57d6ad', '10–25 000 ft'], [25000, '#f4cb67', '25–35 000 ft'], [35000, '#ff8d78', '35 000+ ft']];
+  O.altColor = function (alt) {
+    if (alt == null || !isFinite(+alt)) return '#a8b0bf';
+    var a = +alt;
+    return a < 10000 ? O.ALT_BANDS[0][1] : a < 25000 ? O.ALT_BANDS[1][1] : a < 35000 ? O.ALT_BANDS[2][1] : O.ALT_BANDS[3][1];
+  };
   var RM = false;
   try { RM = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
@@ -266,11 +272,24 @@
         var isF = focusPt && (focusPt === o.q || focusPt.raw === o.q.raw);
         var isH = hoverPt === o.q;
         var rr = isF || isH ? 6 : 3.6;
-        ctx.beginPath(); ctx.arc(s.x, s.y, rr + 2.6, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(0,0,0,.42)'; ctx.fill();
-        ctx.beginPath(); ctx.arc(s.x, s.y, rr, 0, Math.PI * 2);
-        ctx.fillStyle = isF ? '#ffffff' : p.acc; ctx.fill();
-        ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke();
+        var raw = o.q.raw;
+        var isAircraft = !!(raw && raw.cs && (raw.trk != null || raw.alt != null));
+        ctx.beginPath(); ctx.arc(s.x, s.y, rr + (isAircraft ? 3.1 : 2.6), 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,.48)'; ctx.fill();
+        if (isAircraft) {
+          ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(((+raw.trk || 0) * Math.PI) / 180);
+          ctx.beginPath();
+          ctx.moveTo(0, -8); ctx.lineTo(2, -1.5); ctx.lineTo(6.5, 2.2); ctx.lineTo(6.1, 3.6);
+          ctx.lineTo(1.6, 2.2); ctx.lineTo(1.2, 6.2); ctx.lineTo(3.1, 7.6); ctx.lineTo(3, 8.5);
+          ctx.lineTo(0, 7.4); ctx.lineTo(-3, 8.5); ctx.lineTo(-3.1, 7.6); ctx.lineTo(-1.2, 6.2);
+          ctx.lineTo(-1.6, 2.2); ctx.lineTo(-6.1, 3.6); ctx.lineTo(-6.5, 2.2); ctx.lineTo(-2, -1.5); ctx.closePath();
+          ctx.fillStyle = isF ? '#ffffff' : O.altColor(raw.alt); ctx.fill();
+          ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(0,0,0,.72)'; ctx.stroke(); ctx.restore();
+        } else {
+          ctx.beginPath(); ctx.arc(s.x, s.y, rr, 0, Math.PI * 2);
+          ctx.fillStyle = isF ? '#ffffff' : p.acc; ctx.fill();
+          ctx.lineWidth = 1.4; ctx.strokeStyle = 'rgba(0,0,0,.55)'; ctx.stroke();
+        }
         if (!showLabels || !o.q.label) return;
         ctx.font = (isF ? '700 12px' : '600 11px') + ' system-ui,sans-serif';
         var txt = o.q.label;
@@ -438,8 +457,8 @@
 
     return {
       el: el, canvas: cv, view: view, stats: stats,
-      setPoints: setPoints, setRoute: setRoute, focus: focus, fit: fit,
-      world: world, refresh: refresh, resize: resize, destroy: destroy
+      setPoints: setPoints, setRoute: setRoute, focus: focus, fit: fit, flyTo: flyTo,
+      clearFocus: function () { focusPt = null; tick(); }, world: world, refresh: refresh, resize: resize, destroy: destroy
     };
   };
   O.tiles = function (tpl, x, y, z) {

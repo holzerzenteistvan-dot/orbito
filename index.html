@@ -16,14 +16,14 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=14">
+<link rel="stylesheet" href="style.css?v=17">
 <script>try{var t=localStorage.getItem('orbita-theme');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebSite","name":"ORBITA","url":"https://[KITOLTENDO-DOMAIN]/",
 "description":"Élő Föld, műholdak, repülők és útvonaltervező.","inLanguage":"hu",
 "potentialAction":{"@type":"SearchAction","target":"https://[KITOLTENDO-DOMAIN]/varosok.html?q={search_term_string}","query-input":"required name=search_term_string"}}
 </script>
-<script src="proxy.js?v=14"></script>
+<script src="proxy.js?v=17"></script>
 </head>
 <body>
 <div class="progress"><i></i></div>
@@ -94,7 +94,7 @@
   <div class="wrap">
     <div class="stats">
       <div class="stat rv"><b data-count="6371" data-suffix=" km">0</b><span>Föld sugara</span></div>
-      <div class="stat rv"><b data-count="7.66" data-dec="2" data-suffix=" km/s">0</b><span>Menekülési sebesség</span></div>
+      <div class="stat rv"><b data-count="7.66" data-dec="2" data-suffix=" km/s">0</b><span>Alacsony Föld körüli pályasebesség</span></div>
       <div class="stat rv"><b data-count="408" data-suffix=" km">0</b><span>Az ISS magassága</span></div>
       <div class="stat rv"><b data-count="110" data-suffix="+">0</b><span>Város a keresőben</span></div>
     </div>
@@ -122,7 +122,7 @@
     <div class="rv rv-l">
       <p class="kick">Neked és a barátaidnak</p>
       <h2>Nincs fiók. Nincs hirdetés.</h2>
-      <p class="lead">Az ORBITA nem gyűjt rólad adatot. A látogatottságmérés csak akkor indul el, ha az „Elfogadom” gombra kattintasz, és csak akkor, ha egyáltalán be van állítva mérőkód.</p>
+      <p class="lead">Nem kell regisztrálnod, és nincs automatikus látogatottságmérés. A térkép- és adatforrások kéréseket kaphatnak a funkciók működéséhez. A statisztika csak a hozzájárulásod után indul, és kizárólag beállított mérőkód mellett.</p>
       <div class="badge-row">
         <span class="badge">Hozzájárulás alapú mérés</span><span class="badge">Nincs regisztráció</span>
         <span class="badge">Nyílt adatforrások</span><span class="badge">Mobilon is gyors</span>
@@ -147,14 +147,15 @@
       <div><h4>Jog</h4><a href="adatvedelem.html">Adatvédelem</a><a href="impresszum.html">Impresszum</a><a href="aszf.html">ÁSZF</a></div>
     </div>
     <div class="fbot">
-      <span>© <span data-year>2026</span> ORBITA · Kapcsolat: [KITOLTENDO EMAIL]</span>
+      <span>© <span data-year>2026</span> ORBITA · <a href="kapcsolat.html">Kapcsolat</a></span>
       <span>Adatok: CelesTrak · OpenSky Network · OpenStreetMap/Nominatim · OSRM · CARTO · NASA. Fotók: Unsplash, Wikimedia Commons.</span>
     </div>
   </div>
 </footer>
 
-<script src="app.js?v=14"></script>
-<script src="globe.js?v=14"></script>
+<script src="config.js"></script>
+<script src="app.js?v=17"></script>
+<script src="globe.js?v=17"></script>
 <script>
 (function () {
   var host = document.getElementById('heroGlobe');
